@@ -1,0 +1,112 @@
+---
+title: Cuenta y dispositivos
+description: Una cuenta por dueño con varias sucursales, dispositivo de trabajo compartido por local, autenticación por teléfono y código de un solo uso, y revocación de sesiones.
+---
+
+import { Aside, Badge } from '@astrojs/starlight/components';
+import MediaSlot from '../../../components/MediaSlot.astro';
+
+## Arquitectura multi-sucursal
+
+El modelo de datos es **`cuenta → sucursales → insumos/stock/predicción`** desde el día uno — es decir, el esquema está preparado para múltiples sucursales aunque el MVP solo exponga en la UI la gestión de **una sucursal por cuenta** inicialmente, con una opción de **"agregar otra sucursal"** que aparece cuando hace falta.
+
+Cada sucursal tiene sus insumos, stock, registros y predicción **completamente independientes** — nunca se mezclan entre sucursales de una misma cuenta.
+
+Durante el onboarding se pide el nombre de la primera sucursal, con la opción de agregar más adelante (diseñarlo así desde el inicio evita una migración costosa después — ver [Preguntas frecuentes](/producto/preguntas-frecuentes/)).
+
+<MediaSlot tipo="Diagrama" titulo="Una cuenta, varias sucursales, un dispositivo por local">
+	La jerarquía cuenta → sucursales → insumos/stock/predicción, con los datos de cada sucursal separados entre sí, y el dispositivo de trabajo compartido vinculado a cada local.
+</MediaSlot>
+
+## Quién opera y quién es titular <Badge text="Decidido" variant="success" />
+
+El **dueño** es el titular de la cuenta: es quien paga, quien autentica los dispositivos y quien puede revocarlos. El **encargado de compras** es quien opera Kilo a diario — dicta el cierre por voz, revisa las recomendaciones y registra las compras. En un restaurante de una sola sucursal suele ser la misma persona; en una sucursal donde el dueño no está cada noche, es quien esté de turno.
+
+Un dueño que administra 2-3 locales no puede estar físicamente presente cada noche en cada sucursal para hacer el cierre de voz. Kilo resuelve esto sin crear un segundo tipo de usuario ni una segunda identidad que modelar (mismo modelo de cliente que en [Visión general](/producto/vision-general/)). El problema se resuelve **a nivel de dispositivo, no de identidad**: el dispositivo de trabajo compartido de cada sucursal se queda con la sesión del dueño ya autenticada. Quien esté físicamente presente y de turno esa noche usa ese dispositivo para hacer el cierre de voz — no inicia sesión con su propia cuenta, porque no existe una cuenta separada para el personal.
+
+No hay login separado, ni número de teléfono separado, ni flujo de OTP para el personal, ni sistema de permisos/roles que construir. Si un miembro del personal registra datos incorrectamente, eso es un asunto operativo/laboral normal que el dueño gestiona directamente — no algo que el software necesite rastrear o bloquear.
+
+## Modelo de dispositivo
+
+No se asume un teléfono personal por empleado. En Perú no existe un estatuto claro que obligue o prohíba que el empleador entregue un dispositivo para trabajo presencial en restaurantes (la ley de teletrabajo peruana solo cubre trabajo remoto) — es una zona gris de tipo BYOD/laboral que Kilo evita directamente.
+
+**Solución**: **un dispositivo de trabajo compartido por sucursal** (tablet, teléfono, o PC/laptop — ver [Plataforma](#plataforma) más abajo) usado por quien esté de turno, siempre bajo la sesión ya autenticada del dueño para esa sucursal — igual que cómo se despliegan sistemas POS como Fudo en restaurantes pequeños de Perú (una sola tablet/terminal compartida). Esto aplica solo a cuentas multi-sucursal: un restaurante de una sola sucursal no necesita ningún dispositivo nuevo, el teléfono personal del dueño ya alcanza.
+
+## Plataforma
+
+El MVP se construye con **Flutter**, un solo código base que compila a **Android, iOS y Web**. Aunque un dispositivo dedicado (tablet/teléfono) sigue siendo la opción típica, el dispositivo de trabajo compartido de una sucursal puede realistamente ser también una **PC/laptop que ya existe en el local**, en vez de un dispositivo nuevo comprado específicamente para esto — por eso Kilo soporta también un build web, no solo mobile nativo.
+
+<Aside type="caution" title="Diferencia real entre mobile y web: notificaciones">
+La grabación de voz funciona bien en navegadores modernos (vía **Web Audio API**/**MediaRecorder**) — no hay limitación real ahí. Donde sí hay una diferencia real es en **push notifications**: son más limitadas en web (especialmente en Safari/iOS web). Por eso, en el build web específicamente, el **inbox de notificaciones in-app** (ver [Notificaciones](/producto/notificaciones/)) pasa a ser el canal con más carga real, en vez de un simple respaldo del push.
+</Aside>
+
+## Autenticación <Badge text="Decidido" variant="success" />
+
+El proveedor de identidad es **Firebase Authentication** (el servicio de login de Google, construido sobre Google Cloud Identity Platform). Kilo no guarda contraseñas ni implementa su propio login.
+
+Hay **dos puertas a la misma cuenta**, y esto es deliberado:
+
+| Puerta | Para qué sirve | Costo |
+|---|---|---|
+| **Teléfono + código de un solo uso** (primaria) | Vincular el dispositivo compartido de cada sucursal | **US$0.10 por SMS** a Perú; los primeros 10 del día no se cobran |
+| **Cuenta de Google** (segunda) | Entrar cuando el teléfono ya no está disponible | **Gratis** |
+
+Ambas están incluidas en el mismo servicio, que **no cobra nada hasta 50,000 usuarios activos al mes** — Kilo no se acerca ni de lejos a ese número. Lo único que se factura es el SMS.
+
+Vincular el dispositivo de una sucursal es **un evento único, no un login recurrente**: cuando se configura el dispositivo compartido de una sucursal nueva, el dueño lo autentica **una sola vez** con su propio teléfono + código de un solo uso, para vincular ese dispositivo a su cuenta/sucursal. A partir de ahí, el dispositivo se queda logueado indefinidamente: no hay una sesión que se cierre y se vuelva a abrir cada noche, ni una identidad distinta por persona que use el dispositivo (¿por qué el costo de OTP no es un problema aquí? ver [Preguntas frecuentes](/producto/preguntas-frecuentes/)).
+
+### Por qué el teléfono es la puerta principal
+
+- Coincide con el patrón que este segmento ya usa a diario y en el que ya confía: **Yape** entra exactamente igual, con número y código, sin contraseña.
+- El dispositivo de cada sucursal es **compartido entre el personal** (ver [Modelo de dispositivo](#modelo-de-dispositivo)). Una cuenta personal de Gmail de un empleado no debería quedar pegada al equipo del local; un número del negocio sí.
+- No hay contraseña que olvidar, ni que reusar, ni que filtrarse.
+
+El SMS se envía **una vez por dispositivo vinculado**, no cada vez que alguien abre la app. Es un costo de instalación por sucursal, no un costo mensual.
+
+### Por qué existe la segunda puerta
+
+<Aside type="tip" title="El chip se pierde, la cuenta no">
+Si el login fuera solo por teléfono, perder el chip, que lo roben, o cambiar de número dejaría al dueño **encerrado fuera de su propia cuenta**, con su historial adentro y sin forma de recuperarlo.
+
+Por eso el dueño vincula además una **cuenta de Google** durante el onboarding. Si pierde el chip, entra con Google. Si pierde el acceso a Google, entra con el teléfono. **Dos caminos independientes al mismo dato**, y ninguno depende del otro.
+</Aside>
+
+Vincular Google es un paso de un toque y no cuesta nada, así que no hay razón para no ofrecerlo. Lo que sí se descarta es que Google sea la **única** vía: no resuelve el caso del dispositivo compartido del local, y este segmento no vive en su correo.
+
+## Sesión y seguridad <Badge text="Decidido" variant="success" />
+
+El **OTP** (código de un solo uso) sirve para autenticar **una vez**: probar que la persona controla ese número. Los **tokens** son lo que mantiene la sesión abierta **después**. No son alternativas, son dos etapas distintas. Y como Kilo decidió que el dispositivo de cada sucursal quede autenticado **indefinidamente** (ver **Autenticación** más arriba), el diseño de tokens importa **más**, no menos: esa sesión nunca vence sola.
+
+### Estrategia de tokens
+
+- **Access token corto** (~1 hora de vida), que acompaña cada llamada a la API.
+- **Refresh token largo**, que renueva el access token sin volver a pedir OTP.
+- **Dónde se guarda el refresh token, según plataforma** — importa porque Kilo ahora soporta web además de móvil:
+  - **Móvil (Android/iOS)**: en el almacenamiento seguro del sistema operativo — **Keychain** en iOS, **Keystore** en Android.
+  - **Web**: en una **cookie `httpOnly`**, nunca en `localStorage`. Una cookie `httpOnly` no es accesible desde JavaScript, así que un script inyectado en la página no puede robarla.
+
+### Revocación de dispositivos
+
+El dueño ve una **lista de los dispositivos vinculados** a su cuenta — cuál sucursal, cuándo se vinculó, cuándo se usó por última vez — y puede **revocar cualquiera desde su propio teléfono**.
+
+Esto no es opcional: el dispositivo compartido de una sucursal queda logueado indefinidamente en un local donde **el personal rota**. Si se pierde, se lo roban, o un empleado se va en malos términos, tiene que haber una forma de matar esa sesión **sin ir físicamente al local**. Revocar un dispositivo **invalida su refresh token**: la próxima vez que intente renovar, se cae y pide OTP de nuevo.
+
+### Límite de envíos de OTP
+
+<Aside type="danger" title="El límite de envíos protege la caja, no solo la cuenta">
+Cada SMS de verificación a Perú cuesta **US$0.10 ≈ S/0.34**. Si alguien spamea el botón de "enviar código", cada clic es **plata real quemada**: 1,000 clics son ~S/340 que paga Kilo. Es un ataque que **no le cuesta nada al atacante**.
+
+Por eso el límite de envíos por número y por dispositivo no es una medida de seguridad opcional, es **protección de caja**: hay un **límite de intentos por número por hora**, con **espera creciente entre reenvíos**.
+</Aside>
+
+### Modelo de amenazas: qué pasa en el peor caso
+
+La debilidad conocida del teléfono es el **SIM swap** (que alguien se apodere del número). Tener dos puertas no la elimina: la amplía, porque ahora también existe la vía de Google. Conviene entonces medir el daño real en vez de asumirlo.
+
+Quien entre solo ve el **inventario de un restaurante**. Kilo **no guarda datos de tarjeta** — esos los custodia la pasarela de pago mediante tokenización y Kilo nunca los toca — ni guarda datos personales sensibles más allá de un número de teléfono y un correo. El daño potencial es bajo comparado con, por ejemplo, una app bancaria, y el dueño puede cortar cualquier sesión desde la lista de dispositivos.
+
+En el balance, la segunda puerta **evita un problema seguro** — quedarse encerrado fuera de la cuenta al perder el chip, que va a pasarle a alguien — a cambio de agrandar un poco una superficie de ataque cuyo botín es un inventario de verduras.
+
+### Lo que este método gana frente a correo + contraseña
+
+No hay base de contraseñas que se pueda filtrar, no hay reuso de contraseñas entre servicios, y no hay flujo de "recuperar contraseña" que atacar — históricamente uno de los puntos más débiles de cualquier login. Google custodia su propia autenticación, con verificación en dos pasos si el dueño la tiene activada, y Kilo nunca ve esa credencial.

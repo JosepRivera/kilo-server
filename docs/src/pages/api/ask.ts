@@ -1,28 +1,15 @@
-// Endpoint del panel "Preguntar a la IA" embebido en el sitio.
-// Corre como función serverless de Vercel (ver `adapter` en astro.config.mjs);
-// el resto del sitio sigue siendo estático.
 export const prerender = false;
 
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-// El de 20B daba respuestas vacías con más frecuencia de la aceptable en
-// preguntas que combinan varias reglas a la vez (agrupar en mensajes, tablas,
-// excepciones). El de 120B cuesta el doble ($0.15/$0.60 vs $0.075/$0.30 por
-// millón de tokens), pero eso sigue siendo centavos al mes — vale la pena
-// pagarlo por la confiabilidad.
 const MODEL = 'openai/gpt-oss-120b';
 
 const MAX_QUESTION_CHARS = 500;
-// gpt-oss-20b tiene 131k tokens de contexto; toda la doc de Kilo son
-// ~28,000 tokens (~110,000 caracteres). Dejamos margen amplio.
 const MAX_CORPUS_CHARS = 150000;
 
-// Historial de la conversación (para que "¿y eso cómo se resuelve?" tenga
-// antecedente) — lo manda el cliente, no se guarda en el servidor. Acotado
-// para no sumarle de más al corpus ya grande en cada llamada.
-const MAX_HISTORY_MESSAGES = 8; // 4 turnos user+assistant
+const MAX_HISTORY_MESSAGES = 8;
 const MAX_HISTORY_MESSAGE_CHARS = 2000;
 
 type HistoryMessage = { role: 'user' | 'assistant'; content: string };
@@ -51,9 +38,6 @@ async function buildCorpus(): Promise<string> {
 	return cachedCorpus;
 }
 
-// Sitios permitidos a llamar este endpoint. No es a prueba de balas (alguien
-// con curl puede falsificar el header Origin), pero corta en seco el abuso
-// casual y el que un tercero use nuestra key desde su propio sitio.
 const ALLOWED_ORIGINS = ['https://kilo-docs-mu.vercel.app', 'http://localhost:4321'];
 
 export const POST: APIRoute = async ({ request }) => {
@@ -128,11 +112,6 @@ ${corpus}
 		return { ok: true, text: data.choices?.[0]?.message?.content?.trim() ?? 'Sin respuesta.' };
 	}
 
-	// Un modelo chico ocasionalmente corta la respuesta en algo casi vacío
-	// (variación normal de muestreo, no un error de la API). El mensaje de
-	// rechazo real mide ~40 caracteres, así que una respuesta más corta que
-	// eso probablemente sea degenerada, no una respuesta corta legítima.
-	// Hasta 3 intentos en total antes de rendirse.
 	const MAX_ATTEMPTS = 3;
 	let result = await callGroq();
 	for (let attempt = 1; attempt < MAX_ATTEMPTS && result.ok && result.text.length < 25; attempt++) {
@@ -143,8 +122,6 @@ ${corpus}
 		return json({ error: result.error }, 502);
 	}
 
-	// El campo "answer" es texto en markdown (no HTML) — el cliente lo renderiza
-	// con un conversor propio chico (ver ask-widget.js), no un parser completo.
 	let answer = result.text;
 	if (answer.includes('no está definido en la documentación')) {
 		answer += '\n\nSi crees que sí debería estar, prueba reformular la pregunta enfocándola directamente en el tema — frases como "fuera de la documentación" o "más allá del documento" a veces confunden al asistente.';

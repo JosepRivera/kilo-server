@@ -1,0 +1,37 @@
+---
+title: Notificaciones
+description: Estrategia de avisos por capas — push nativo como canal por defecto, bandeja in-app como respaldo garantizado, y por qué SMS y WhatsApp quedaron fuera.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import MediaSlot from '../../../components/MediaSlot.astro';
+
+Kilo usa un enfoque **por capas** para las alertas operativas (vencimientos, recomendaciones de compra):
+
+## 1. Push nativo, gratis — canal por defecto
+
+Todas las alertas operativas se envían primero por push nativo, usando **FCM** (Firebase Cloud Messaging, el servicio de notificaciones push de Google). No tiene costo por mensaje ni tope de envíos.
+
+<Aside type="caution" title="Riesgo real de entrega">
+**Xiaomi** (~28% del mercado peruano de smartphones) y **Samsung** (~25%) limitan agresivamente la entrega de push en segundo plano por su gestión de batería. Entre las dos marcas cubren más de la mitad de los dispositivos del país, así que esto no es un caso borde: es el caso típico. Por eso el onboarding debe incluir un paso explícito pidiendo al encargado de compras **desactivar la optimización de batería** para la app.
+
+*Fuente de las cuotas de mercado: Omdia, Perú, Q2 2026.*
+</Aside>
+
+## 2. Inbox de notificaciones in-app — respaldo garantizado
+
+Una bandeja de notificaciones dentro de la propia app (como una campana/lista) asegura que nada se pierda silenciosamente aunque el push falle — **todo queda registrado ahí permanentemente**, independientemente de si el push se entregó o no.
+
+<MediaSlot tipo="Imagen" titulo="Bandeja de notificaciones in-app">
+	La lista dentro de la app donde queda registrada toda alerta — vencimientos y recomendaciones de compra — aunque el push nunca se haya entregado en el dispositivo.
+</MediaSlot>
+
+## 3. SMS — descartado para notificaciones generales
+
+Un SMS a Perú por un proveedor de mensajería tipo Twilio cuesta **~US$0.2476** (tarifa publicada). A ese precio **no es viable a ninguna escala real** para avisos operativos diarios. El SMS sí se usa, pero solo para el código de acceso, y por otra vía mucho más barata (ver [Cuenta y dispositivos](/producto/cuenta-y-dispositivos/)).
+
+## 4. WhatsApp Business API — descartado
+
+Se evaluó y quedó fuera. Los códigos de acceso no viajan por la categoría **utility** de Meta sino por la de **authentication**, cuya tarifa por país solo se publica en fichas descargables: para tener el número real de Perú hacía falta la **cotización de un BSP** (proveedor de soluciones de negocio de WhatsApp) que nunca se consiguió. Con el SMS de Firebase costando **S/0.34**, el ahorro que WhatsApp podría dar dejó de justificar montar y mantener la integración.
+
+Cualquier lógica de recordatorio la construye Kilo mismo, vía push + bandeja in-app.

@@ -1,9 +1,12 @@
 ---
-title: "Fase 4 — Recomendador de compras"
+title: "Fase 4 — Recomendación de compra"
 description: Cuánto comprar antes de la siguiente visita al mercado, alertas de vencimiento por lote (FIFO) y el ahorro visible mes a mes.
+sidebar:
+  order: 4
 ---
 
-import { Badge, LinkCard } from '@astrojs/starlight/components';
+import { Badge } from '@astrojs/starlight/components';
+import MediaSlot from '../../../../components/MediaSlot.astro';
 
 Antes de la siguiente visita programada al mercado (usando el **intervalo de compra**, declarado por categoría en la [Fase 1](/producto/flujo/fase-1-onboarding/)), Kilo calcula, por insumo:
 
@@ -17,7 +20,7 @@ cantidad a comprar = demanda predicha + umbral mínimo − stock actual
 
 ## Alertas de vencimiento por lote (FIFO)
 
-Cada compra se registra como un **lote separado** (fecha + cantidad + costo), de forma invisible para el dueño — nunca se le pregunta qué lote está usando en la cocina. Internamente, el sistema **asume FIFO** (*first in, first out*: el lote más antiguo se consume primero) como la convención más segura para calcular el riesgo de vencimiento (¿por qué es segura aunque la cocina no la siga al pie de la letra? ver [Preguntas frecuentes](/producto/preguntas-frecuentes/)).
+Cada compra registrada al volver del mercado queda como un **lote** — fecha, cantidad y costo (ver [Fase 5](/producto/flujo/fase-5-registro-compra/)). Internamente, el sistema **asume FIFO** (*first in, first out*: el lote más antiguo se consume primero) como la convención más segura para calcular el riesgo de vencimiento (¿por qué es segura aunque la cocina no la siga al pie de la letra? ver [Preguntas frecuentes](/producto/preguntas-frecuentes/)). Todo esto es invisible para el encargado de compras — nunca se le pregunta qué lote está usando en la cocina.
 
 Por esto es necesario rastrear los lotes por separado: sin un orden de consumo asumido, el sistema no podría decir **cuál lote específico** está en riesgo.
 
@@ -28,6 +31,10 @@ Por esto es necesario rastrear los lotes por separado: sin un orden de consumo a
 
 Una alerta consciente de lotes dice: *"El lote de pollo del lunes vence mañana"* — en vez de una advertencia genérica a nivel de insumo que no distingue cuál lote es el urgente.
 
+<MediaSlot tipo="Imagen" titulo="Lista de compra del día y alertas de vencimiento">
+	La pantalla de la mañana: insumo por insumo, cuánto comprar antes de ir al mercado, y los lotes marcados como próximos a vencer.
+</MediaSlot>
+
 ## Ahorro visible <Badge text="Por validar en piloto" variant="caution" />
 
 Kilo muestra una **comparación mes contra mes del valor de insumo vencido, para el mismo restaurante** — nunca contra una línea base hipotética de "si no usaras la app". Ejemplo:
@@ -35,20 +42,14 @@ Kilo muestra una **comparación mes contra mes del valor de insumo vencido, para
 - **Mes 1** (predicciones sin refinar, arranque en frío reciente): **S/380** perdidos en insumo vencido.
 - **Mes 4** (predicciones ya refinadas con datos reales acumulados): **S/200** perdidos.
 
-Esto se muestra al dueño como:
+Esto se muestra al encargado de compras como:
 
 > "Este mes perdiste S/200, S/180 menos que tu primer mes."
 
-**Por qué este ejemplo y no uno más ambicioso.** S/380 → S/200 es una reducción de aproximadamente **47%** en tres meses. Es deliberadamente conservador: las cifras publicadas para software de inventario y pronóstico de demanda se agrupan en un rango de **20-50% de reducción de desperdicio**, y esas son afirmaciones de los propios proveedores, no resultados auditados de forma independiente. Un ejemplo de 75% de reducción quedaría fuera de todo lo que la industria reporta y sería lo primero que un lector escéptico atacaría — y como este número sostiene toda la narrativa de precio (ver [Pagos y pricing](/producto/pagos-y-pricing/)), tiene que aguantar ese ataque. Las cifras reales del piloto reemplazarán este ejemplo.
+**Por qué este ejemplo y no uno más ambicioso.** S/380 → S/200 es una reducción de aproximadamente **47%** en tres meses. Es deliberadamente conservador: las cifras publicadas para software de inventario y pronóstico de demanda se agrupan en un rango de **20-50% de reducción de desperdicio**, y esas son afirmaciones de los propios proveedores, no resultados auditados de forma independiente. Un ejemplo de 75% de reducción quedaría fuera de todo lo que la industria reporta y sería lo primero que un lector escéptico atacaría — y como esta es la cifra que el producto muestra como su resultado, tiene que aguantar ese ataque. Las cifras reales del piloto reemplazarán este ejemplo.
 
-El "ahorro" mostrado — y sobre el cual se calcula el precio (ver [Pagos y pricing](/producto/pagos-y-pricing/)) — es el **costo de compra de los insumos que ya no se desperdician**, no utilidad ni ingreso (más detalle en [Preguntas frecuentes](/producto/preguntas-frecuentes/)).
-
-<LinkCard
-	title="Pagos y pricing"
-	href="/producto/pagos-y-pricing/"
-	description="Cómo este ahorro medido se convierte en el precio del mes, con piso y techo."
-/>
+El "ahorro" mostrado es el **costo de compra de los insumos que ya no se desperdician**, no utilidad ni ingreso (más detalle en [Preguntas frecuentes](/producto/preguntas-frecuentes/)).
 
 ---
 
-Anterior: [Fase 3 — Predicción nocturna](/producto/flujo/fase-3-prediccion/)
+Anterior: [Fase 3 — Procesamiento nocturno](/producto/flujo/fase-3-prediccion/) · Siguiente: [Fase 5 — Registro de compra](/producto/flujo/fase-5-registro-compra/)

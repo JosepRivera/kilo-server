@@ -7,12 +7,11 @@ import vercel from '@astrojs/vercel';
 
 export default defineConfig({
 	site: 'https://kilo-docs-mu.vercel.app',
-	// El sitio se sigue generando estático (cada página HTML se prerenderiza).
-	// Solo /api/ask.ts pide `prerender = false` para correr como función serverless.
 	adapter: vercel(),
 	integrations: [
 		starlight({
 			title: 'Kilo Docs',
+			disable404Route: true,
 			head: [
 				{ tag: 'link', attrs: { rel: 'stylesheet', href: '/ask-widget.css' } },
 				{ tag: 'script', attrs: { src: '/ask-widget.js', defer: true } },
@@ -31,12 +30,10 @@ export default defineConfig({
 					label: 'Producto',
 					items: [
 						{ label: 'Visión general', slug: 'producto/vision-general' },
-						{ label: 'Modelo de negocio', slug: 'producto/modelo-de-negocio' },
+						{ label: 'Competencia', slug: 'producto/competencia' },
 						{ label: 'Flujo operativo', items: [{ autogenerate: { directory: 'producto/flujo' } }] },
-						{ label: 'Multi-sucursal', slug: 'producto/multi-sucursal' },
-						{ label: 'Pagos y pricing', slug: 'producto/pagos-y-pricing' },
-						{ label: 'Costos y economía', slug: 'producto/costos' },
-						{ label: 'Notificaciones y autenticación', slug: 'producto/notificaciones-y-autenticacion' },
+						{ label: 'Cuenta y dispositivos', slug: 'producto/cuenta-y-dispositivos' },
+						{ label: 'Notificaciones', slug: 'producto/notificaciones' },
 						{ label: 'Preguntas frecuentes', slug: 'producto/preguntas-frecuentes' },
 						{ label: 'Decisiones descartadas', slug: 'producto/descartado' },
 					],

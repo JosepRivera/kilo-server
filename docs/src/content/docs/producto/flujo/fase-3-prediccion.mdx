@@ -1,9 +1,12 @@
 ---
-title: "Fase 3 — Procesamiento automático (nocturno)"
+title: "Fase 3 — Procesamiento nocturno"
 description: Holt-Winters y el sistema de 3 capas de arranque en frío, con ejemplos numéricos completos (El Buen Sazón y La Cusqueñita).
+sidebar:
+  order: 3
 ---
 
 import { Aside, Badge, Steps } from '@astrojs/starlight/components';
+import MediaSlot from '../../../../components/MediaSlot.astro';
 
 Cada noche, el sistema recalcula, insumo por insumo, usando **suavizamiento exponencial de Holt-Winters** (un método estadístico de pronóstico que se ajusta solo, sin reglas escritas a mano, a medida que llegan datos nuevos) sobre el historial de consumo. El batch corre **una vez al día, a una hora fija de bajo tráfico** (aprox. 5-6am hora Perú, no a medianoche), para dar tiempo a los restaurantes que cierran tarde a grabar su registro de voz antes de que corra. Un registro que llega después del corte simplemente se recoge en el batch del día siguiente.
 
@@ -22,6 +25,10 @@ Durante los primeros ~28 días, un insumo todavía no tiene suficiente historial
 - **Capa 3** (construida para el MVP, ya es el mecanismo central): cada día real que llega reemplaza un día de esa estimación inicial, hasta acumular ~28 días reales.
 - **Capa 1** (mejora automática con el tiempo, no es una funcionalidad separada a construir): una vez que hay varios restaurantes del **mismo tipo de cocina** con historial real, ese patrón agregado y anonimizado se usa para hacer más inteligente el reparto de la Capa 2 del **día 0** de un restaurante nuevo — nunca para reemplazar datos reales ya existentes.
 </Aside>
+
+<MediaSlot tipo="Diagrama" titulo="Las 3 capas del arranque en frío">
+	Cómo la Capa 2 estima el día 0 repartiendo el gasto declarado por categoría, cómo la Capa 3 va reemplazando día por día esa estimación con datos reales hasta los 28 días, y cómo la Capa 1 mejora la estimación inicial con el patrón agregado de restaurantes del mismo tipo de cocina.
+</MediaSlot>
 
 ### Ejemplo completo: Restaurante #1 — "El Buen Sazón" (el primero de la plataforma)
 
@@ -76,4 +83,4 @@ Los días marcados como **estimado** (ver [Fase 2, manejo de huecos](/producto/f
 
 ---
 
-Anterior: [Fase 2 — Registro diario por voz](/producto/flujo/fase-2-registro-diario/) · Siguiente: [Fase 4 — Recomendador de compras](/producto/flujo/fase-4-recomendador/)
+Anterior: [Fase 2 — Registro diario por voz](/producto/flujo/fase-2-registro-diario/) · Siguiente: [Fase 4 — Recomendación de compra](/producto/flujo/fase-4-recomendador/)

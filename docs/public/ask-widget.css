@@ -11,9 +11,6 @@
 	border-radius: 0.85rem;
 	border: 1px solid var(--sl-color-gray-5);
 	background-color: var(--sl-color-accent);
-	/* Blanco fijo, no el token --sl-color-white: ese token se invierte a
-	   negro en modo claro (correcto para texto sobre el fondo de la página),
-	   pero este ícono va sobre el acento, que se mantiene azul en los dos temas. */
 	color: #fff;
 	cursor: pointer;
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
@@ -48,8 +45,6 @@
 	transform: translateX(0);
 }
 
-/* Los <button> no heredan tipografía por defecto en los navegadores
-   (usan la fuente del sistema, no la de la página) — se iguala a mano. */
 #kilo-ask-panel button {
 	font: inherit;
 }
@@ -94,9 +89,6 @@
 	display: flex;
 	flex-direction: column;
 	gap: 0.75rem;
-	/* Sin patrón de fondo: cuando la respuesta ya no va en burbuja, el fondo
-	   decorativo se ve encima del texto, no detrás de una burbuja — estorba
-	   más de lo que aporta. */
 }
 
 #kilo-ask-intro {
@@ -133,12 +125,7 @@
 	border-radius: 0.65rem;
 	font-size: var(--sl-text-sm);
 	line-height: 1.55;
-	overflow-x: auto; /* si algo adentro (una tabla ancha) no cabe, scrollea la burbuja, no el panel */
-	/* Trampa de CSS: fijar solo overflow-x hace que overflow-y calcule a "auto"
-	   también (regla del spec: si un eje no es "visible" el otro deja de serlo).
-	   Eso + ser hijo de un flex column con min-height:auto hacía que la propia
-	   burbuja se encogiera y scrolleara por dentro en vez de crecer y dejar
-	   scrollear al panel. Los dos, explícitos, lo evitan. */
+	overflow-x: auto;
 	overflow-y: visible;
 	flex-shrink: 0;
 }
@@ -146,22 +133,18 @@
 .kilo-ask-bubble--user {
 	align-self: flex-end;
 	background-color: var(--sl-color-accent);
-	color: #fff; /* fijo — ver nota en #kilo-ask-button */
+	color: #fff;
 	border-bottom-right-radius: 0.15rem;
-	white-space: pre-wrap; /* acá el texto sigue siendo plano, con saltos de línea reales */
+	white-space: pre-wrap;
 }
 
-/* Respuesta real del asistente: sin burbuja, a todo el ancho, como Claude.ai —
-   "Pensando..." y los errores siguen usando .kilo-ask-bubble--assistant (una
-   burbuja chica sí tiene sentido para un estado corto, no para una respuesta
-   larga con formato). */
 .kilo-ask-block {
 	align-self: stretch;
 	max-width: 100%;
 	color: var(--sl-color-gray-1);
 	font-size: var(--sl-text-sm);
 	line-height: 1.55;
-	flex-shrink: 0; /* mismo motivo que en .kilo-ask-bubble — no debe encogerse ni scrollear solo */
+	flex-shrink: 0;
 }
 
 .kilo-ask-block p {
@@ -181,7 +164,7 @@
 	background-color: var(--sl-color-gray-6);
 	border: 1px solid var(--sl-color-gray-5);
 	overflow-x: auto;
-	overflow-y: visible; /* mismo motivo que en .kilo-ask-bubble */
+	overflow-y: visible;
 }
 .kilo-ask-block pre code {
 	background: none;
@@ -204,8 +187,8 @@
 	margin-bottom: 0.25rem;
 }
 .kilo-ask-table-wrap {
-	overflow-x: auto; /* la tabla scrollea horizontal si no cabe, el bloque no */
-	overflow-y: visible; /* mismo motivo que en .kilo-ask-bubble */
+	overflow-x: auto;
+	overflow-y: visible;
 	margin: 0 0 0.6rem;
 }
 .kilo-ask-block table {
@@ -218,8 +201,6 @@
 	border: 1px solid var(--sl-color-gray-5);
 	padding: 0.4rem 0.55rem;
 	text-align: left;
-	/* sin nowrap: una celda con texto largo (una descripción, no solo un
-	   número) debe envolver, no forzar toda la tabla a ensancharse */
 }
 .kilo-ask-block th {
 	color: var(--sl-color-white);
@@ -244,7 +225,7 @@
 #kilo-ask-input {
 	flex: 1;
 	min-width: 0;
-	box-sizing: border-box; /* si no, el padding se suma aparte del alto calculado en JS y scrollea antes de tiempo */
+	box-sizing: border-box;
 	max-height: 8.5rem;
 	padding: 0.6rem 0.9rem;
 	border-radius: 1.1rem;
@@ -268,7 +249,7 @@
 	border-radius: 999px;
 	border: none;
 	background-color: var(--sl-color-accent);
-	color: #fff; /* fijo — ver nota en #kilo-ask-button */
+	color: #fff;
 	cursor: pointer;
 }
 

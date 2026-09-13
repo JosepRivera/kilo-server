@@ -5,23 +5,29 @@ description: Por qué se tomó cada decisión y qué pasa en los casos límite �
 
 Esta página junta el razonamiento ("¿por qué?") y los casos límite ("¿qué pasa si...?") de las decisiones de producto, agrupados por tema. Las páginas principales explican **qué es** cada mecanismo; aquí se explica **por qué** y **qué pasa en el caso raro**.
 
-## Visión general y modelo de negocio
+## El problema y el cliente
 
-### ¿Qué tan confiable es la cifra de desperdicio que se menciona (5-12%)?
+### ¿Existe una cifra confiable de cuánto desperdicia un restaurante en Perú?
 
-Es una estimación de trabajo, no un hecho confirmado, y conviene ser explícito sobre lo débil que es su origen.
+Se investigó a fondo (septiembre 2026) y la respuesta es **no** — no existe ninguna cifra peruana con metodología detrás, y las que circulan en internet no resisten el rastreo hasta la fuente.
 
-El rastro real es este: la cifra aparece en un artículo de blog de **PANCA que no cita ninguna fuente**. No hay un estudio detrás al cual rastrearla. Además, **PANCA se contradice a sí misma**: otro artículo suyo da un rango distinto, **5-10%**. En resumen, **no existe hoy una cifra rigurosa y específica para Lima**.
+**Lo que no existe**: ni el Estado peruano (MIDAGRI, MINAM, INEI, SUNAT, PRODUCE) ni la Ley 30988 (la ley peruana contra el desperdicio de alimentos) ni su Comisión Multisectorial han publicado un estudio o cifra oficial de desperdicio en restaurantes. Tampoco lo hicieron el Banco de Alimentos Perú ni los gremios del sector (AHORA Perú, CANATUR). La academia peruana sí ha estudiado el tema, pero mide otra cosa: residuos orgánicos para biogás o compostaje, o el comportamiento del consumidor — no la merma de cocina como porcentaje del costo de insumos.
 
-La referencia externa mejor sostenida es la de la **National Restaurant Association (EE.UU.)**: **4-10% de desperdicio pre-consumidor** (lo que se pierde antes de que el plato llegue al cliente) medido sobre el costo de insumos. Está correctamente atribuida, correctamente etiquetada como dato de EE.UU. y sí es comparable con lo que Kilo mide.
+**El "5-12%" que se manejaba antes** viene de un artículo de blog de **PANCA que no cita ninguna fuente**. Y PANCA se contradice a sí misma: otro artículo suyo del mismo blog da un rango distinto, **5-10%**, tampoco citado. Dos números distintos de la misma empresa, ninguno con estudio detrás, es la señal clásica de una cifra inventada o redondeada de oído.
 
-Una aclaración que importa: la cifra de **~17% de desperdicio de alimentos a nivel global** que suele citarse **no es de la FAO, es del *Food Waste Index Report 2021* del PNUMA (UNEP)**, y mide desperdicio a nivel de consumidor (11% hogares + 5% servicio de comida + 2% retail). **No mide el desperdicio de un restaurante como porcentaje de su costo de insumos**, así que no es comparable con el 4-10% de la NRA y no debe usarse como si lo fuera.
+**El "4-10%" de la National Restaurant Association (EE.UU.)**, que se usaba antes como la mejor referencia disponible, **tampoco resiste el rastreo**: la publicación de la NRA no cita ningún estudio — atribuye la cifra a un director de marketing de LeanPath, un proveedor de software de control de desperdicio. Es una cita de alguien vendiendo el producto que resuelve el problema, no una medición.
 
-El rango específico para Lima queda como supuesto por validar con datos reales del piloto (ver [Visión general](/producto/vision-general/)).
+**El "~17% global"** que a veces se repite tampoco sirve como comparación: no es de la FAO, es del *Food Waste Index Report* del PNUMA (UNEP), y mide desperdicio de consumidor (hogares + servicio de comida + retail), no la merma de cocina de un restaurante como % de sus compras. Además, el reporte más reciente (2024) solo tiene dato de Perú a nivel de **hogares** — no hay ninguna estimación de restaurantes/food service para el país.
+
+**Lo único que sí tiene metodología real y es citable**:
+- **WRAP** (Reino Unido, 2013, datos de 2011): en restaurantes, pubs y locales de ocio se desperdicia más del 20% del *peso* de lo comprado, y el 66% de eso se pierde antes de llegar al comensal (45% en preparación + 21% por deterioro). Es Reino Unido, no Perú, y mide peso, no soles — no es un reemplazo directo del "5-12%", solo la referencia real más cercana que existe.
+- **Champions 12.3** (2019), el estudio con mejor metodología del lote: midió desperdicio real en 114 restaurantes de 12 países y encontró que la mediana recupera **US$7 por cada US$1** invertido en reducirlo, con un ahorro promedio de más de 2 centavos por cada dólar de costo de insumos.
+
+Kilo no repite ninguna de estas cifras como si fuera un dato de Lima. Ver [Visión general](/producto/vision-general/) para cómo se plantea el problema sin depender de un número que nadie puede sostener.
 
 ### ¿Por qué se menciona que el cliente no tiene POS ni RUC si Kilo no los necesita técnicamente?
 
-Kilo funciona igual tenga el restaurante POS (sistema de punto de venta) o RUC (Registro Único de Contribuyente) o no — no depende de ninguno de los dos para operar. Se mencionan porque son la señal de qué tan informal es el negocio objetivo, no un requisito del producto. Un restaurante con POS también podría usar Kilo sin problema técnico; simplemente ya no sería el segmento desatendido que el producto prioriza para el piloto y el pricing (ver [Visión general](/producto/vision-general/)).
+Kilo funciona igual tenga el restaurante POS (sistema de punto de venta) o RUC (Registro Único de Contribuyente) o no — no depende de ninguno de los dos para operar. Se mencionan porque son la señal de qué tan informal es el negocio objetivo, no un requisito del producto. Un restaurante con POS también podría usar Kilo sin problema técnico; simplemente ya no sería el segmento desatendido que el producto prioriza para el piloto (ver [Visión general](/producto/vision-general/)).
 
 ## Registro diario y huecos
 
@@ -35,7 +41,11 @@ Supongamos que el local estuvo cerrado martes y miércoles sin marcar ningún to
 
 ### ¿Qué pasa si hay dos compras del mismo insumo el mismo día a precios distintos?
 
-Cada compra ya se registra como su propio lote (fecha + cantidad + costo), así que dos compras el mismo día a precios distintos se tratan simplemente como dos lotes separados — el mismo mecanismo que ya se usa para compras en días distintos, sin ningún caso especial. No hace falta ningún cálculo de promedio ponderado ni se pierde precisión: cada lote conserva su propio costo real (ver [Fase 2](/producto/flujo/fase-2-registro-diario/)).
+Cada compra ya se registra como su propio lote (fecha + cantidad + costo), así que dos compras el mismo día a precios distintos se tratan simplemente como dos lotes separados — el mismo mecanismo que ya se usa para compras en días distintos, sin ningún caso especial. No hace falta ningún cálculo de promedio ponderado ni se pierde precisión: cada lote conserva su propio costo real (ver [Fase 5](/producto/flujo/fase-5-registro-compra/)).
+
+### ¿Por qué el registro de compra es una fase aparte y no parte del cierre diario?
+
+Porque ocurre en otro momento del día: el cierre se dicta al cerrar la noche, la compra al volver del mercado. Además registra datos distintos — qué se compró, cuánto y a qué costo, no cuánto queda — y es lo que crea los lotes que hacen posibles las alertas de vencimiento. Tenerlo metido dentro del cierre diario hacía parecer que el ciclo empezaba por la compra, cuando en realidad la cierra (ver [Fase 5](/producto/flujo/fase-5-registro-compra/)).
 
 ## Predicción
 
@@ -43,58 +53,26 @@ Cada compra ya se registra como su propio lote (fecha + cantidad + costo), así 
 
 Si la práctica real en cocina no coincide exactamente con FIFO (se consume primero lo más viejo), la cifra total de soles perdidos al mes sigue siendo precisa: está determinada por el stock total remanente frente al consumo esperado, no por el orden de uso. Lo único que podría ser impreciso es a qué lote específico se atribuye una alerta puntual, no el total de desperdicio (ver [Fase 4](/producto/flujo/fase-4-recomendador/)).
 
-### ¿Qué significa exactamente "ahorro" en los reportes y en el precio?
+### ¿Qué significa exactamente "ahorro" en los reportes?
 
-Es el costo de compra bruto de los insumos que ya no se desperdician — dinero que el dueño no gasta reponiendo stock ni pierde en insumo vencido, calculado al costo de compra del insumo, no al precio de venta del plato terminado. No es utilidad neta, no es ingreso, y no toma en cuenta el margen general del negocio (ver [Fase 4](/producto/flujo/fase-4-recomendador/) y [Pagos y pricing](/producto/pagos-y-pricing/)).
+Es el costo de compra bruto de los insumos que ya no se desperdician — dinero que el dueño no gasta reponiendo stock ni pierde en insumo vencido, calculado al costo de compra del insumo, no al precio de venta del plato terminado. No es utilidad neta, no es ingreso, y no toma en cuenta el margen general del negocio (ver [Fase 4](/producto/flujo/fase-4-recomendador/)).
 
-## Pagos
-
-### ¿Por qué el precio no es una banda fija por tier?
-
-Porque el precio es un porcentaje del ahorro real medido, que varía mes a mes y restaurante a restaurante; una banda fija no reflejaría lo que Kilo realmente le ahorró a cada dueño ese mes específico.
-
-Hubo además una razón concreta para eliminar los tiers: **la tabla de tiers no cuadraba con su propia fórmula**. Decía cobrar 10-20% del ahorro, pero los precios listados por tier no salían de aplicar ese porcentaje a los ahorros listados. Hoy el mecanismo es una sola fórmula: **15% del ahorro medido ese mes, con piso de S/35 + IGV y techo de S/89 + IGV** (ver [Pagos y pricing](/producto/pagos-y-pricing/) y [Decisiones descartadas](/producto/descartado/)).
-
-### ¿Por qué aparece el IGV si somos una startup chica?
-
-Porque para cobrarle a un restaurante que quiere factura, Kilo tiene que estar formalmente registrado — y **toda venta formal en Perú lleva 18% de IGV**. No es una decisión de Kilo ni depende del tamaño de la empresa.
-
-Lo que sí es una decisión es **cómo se anuncia el precio**. Si se publicara con IGV adentro, S/35 serían en realidad **S/29.66 de ingreso** y **S/5.34 se irían a SUNAT**: el 15.25% de los ingresos saldría del propio margen de Kilo (ver el desglose en [Costos](/producto/costos/)). Diciendo "+ IGV" de forma explícita, un cliente **con RUC** lo recupera como **crédito fiscal** y no le cuesta nada real.
-
-La tensión hay que decirla completa: un restaurante **sin RUC no puede recuperarlo**, así que ese 18% es un sobrecosto real justo para el cliente más informal, que es el que menos margen tiene para absorberlo. Es un problema comercial del modelo, no técnico: no se arregla con ingeniería.
-
-### ¿Por qué el programa de referidos solo paga cuando la cuenta referida convierte a pago real?
-
-Para cerrar el loophole obvio de crear cuentas desechables para "farmear" meses gratis: una cuenta que nunca convierte a pago real nunca dispara ninguna recompensa (ver [Pagos y pricing](/producto/pagos-y-pricing/)).
-
-### ¿Por qué no acortar la ventana de 3-4 meses antes del primer pago real (2-3 de piloto + 1 de referido)?
-
-Porque coincide, convenientemente, con la misma ventana de comparación mes-1-vs-mes-4 que la narrativa de valor del producto ya necesita (S/380 → S/200, ver [Ahorro visible](/producto/flujo/fase-4-recomendador/)) para demostrar valor real antes del primer cobro (ver [Pagos y pricing](/producto/pagos-y-pricing/)).
-
-### ¿Por qué elegir Culqi si tiene quejas de la comunidad sobre anti-fraude y soporte?
-
-Porque esas quejas importan menos en este caso: es facturación B2B recurrente de un cliente ya conocido y verificado (el dueño del piloto), no un checkout anónimo de consumidor donde el riesgo de fraude es mucho mayor. La menor barrera de entrada de Culqi (solo DNI, sin RUC) pesa más en esta etapa (ver [Pagos y pricing](/producto/pagos-y-pricing/)).
-
-## Multi-sucursal
+## Cuenta y dispositivos
 
 ### ¿Por qué diseñar el esquema de datos multi-sucursal desde el día uno, si el MVP solo muestra una sucursal en la UI?
 
-Adaptar un esquema de una sola sucursal a multi-sucursal más adelante es una migración costosa. Diseñarlo multi-sucursal-ready desde el principio cuesta casi nada extra en esta etapa, mientras la UI del MVP se mantiene simple (ver [Multi-sucursal](/producto/multi-sucursal/)).
+Adaptar un esquema de una sola sucursal a multi-sucursal más adelante es una migración costosa. Diseñarlo multi-sucursal-ready desde el principio cuesta casi nada extra en esta etapa, mientras la UI del MVP se mantiene simple (ver [Cuenta y dispositivos](/producto/cuenta-y-dispositivos/)).
 
 ### ¿Por qué el costo de OTP no es un problema para el dispositivo compartido?
 
-Porque esta autenticación ocurre **una sola vez por dispositivo** (no en cada uso) y el SMS de verificación de Firebase Auth cuesta **US$0.10 (S/0.34) por mensaje a Perú**, con los primeros 10 de cada día sin cobro. Un puñado de envíos de OTP (código de un solo uso) por restaurante es un costo de alta, no un costo mensual (ver [Multi-sucursal](/producto/multi-sucursal/) y [Costos](/producto/costos/)).
+Porque esta autenticación ocurre **una sola vez por dispositivo** (no en cada uso) y el SMS de verificación de Firebase Auth cuesta **US$0.10 (S/0.34) por mensaje a Perú**, con los primeros 10 de cada día sin cobro. Un puñado de envíos de OTP (código de un solo uso) por restaurante es un costo de alta, no un costo mensual (ver [Cuenta y dispositivos](/producto/cuenta-y-dispositivos/)).
 
 ## Notificaciones y login
 
 ### ¿Qué pasa si el dueño pierde el chip o cambia de número?
 
-Para eso el login **no es solo por teléfono**. Google Sign-In se ofrece como **segunda puerta a la misma cuenta**, gratis en Firebase Auth. Si se pierde el chip, se entra con Google; si se pierde el acceso a Google, se entra con el teléfono. Ninguna de las dos pérdidas deja al dueño afuera de su propio historial (el diseño completo está en [Notificaciones y autenticación](/producto/notificaciones-y-autenticacion/)).
+Para eso el login **no es solo por teléfono**. Google Sign-In se ofrece como **segunda puerta a la misma cuenta**, gratis en Firebase Auth. Si se pierde el chip, se entra con Google; si se pierde el acceso a Google, se entra con el teléfono. Ninguna de las dos pérdidas deja al dueño afuera de su propio historial (el diseño completo está en [Cuenta y dispositivos](/producto/cuenta-y-dispositivos/)).
 
 ### ¿Por qué el teléfono es el método primario y no Google?
 
 Porque calca el patrón que el dueño ya usa todos los días con Yape, y funciona en un dispositivo de trabajo compartido entre personal, donde una cuenta de Gmail personal encaja peor. Google queda como segundo método, no como reemplazo (ver [Decisiones descartadas](/producto/descartado/)).
-
-### ¿Por qué no hay recordatorio automático de expiración de suscripción del sistema operativo?
-
-Porque la facturación pasa por Culqi directamente, no por el cobro in-app nativo de Google Play/App Store — el 100% de la lógica de recordatorio la construye Kilo mismo, vía push + inbox in-app (ver [Notificaciones y autenticación](/producto/notificaciones-y-autenticacion/)).

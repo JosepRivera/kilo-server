@@ -1,0 +1,41 @@
+---
+interface Props {
+	tipo?: string;
+	titulo: string;
+}
+const { tipo = 'Imagen', titulo } = Astro.props;
+---
+
+<figure class="media-slot">
+	<span class="media-slot__tag">{tipo} pendiente</span>
+	<strong class="media-slot__title">{titulo}</strong>
+	<p class="media-slot__desc"><slot /></p>
+</figure>
+
+<style>
+	.media-slot {
+		margin: 1.5rem 0;
+		padding: 1.25rem;
+		border: 2px dashed var(--sl-color-gray-4);
+		border-radius: 0.5rem;
+		background: var(--sl-color-gray-7);
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+	.media-slot__tag {
+		font-size: var(--sl-text-xs);
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: var(--sl-color-gray-3);
+	}
+	.media-slot__title {
+		color: var(--sl-color-white);
+		font-size: var(--sl-text-sm);
+	}
+	.media-slot__desc {
+		margin: 0;
+		font-size: var(--sl-text-sm);
+		color: var(--sl-color-gray-2);
+	}
+</style>
