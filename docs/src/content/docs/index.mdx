@@ -10,7 +10,7 @@ hero:
     - text: Empezar por la visión general
       link: /producto/vision-general/
       icon: right-arrow
-    - text: Ver el flujo operativo
+    - text: Ver las 5 fases del flujo operativo
       link: /producto/flujo/
       icon: document
       variant: minimal
@@ -22,16 +22,16 @@ import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
 
 <CardGrid>
 	<Card title="Visión general" icon="open-book">
-		El problema, el cliente, la solución y por qué no la competencia. Empieza por [Visión general](/producto/vision-general/) si es tu primera vez.
+		El problema, el cliente y la solución. Empieza por [Visión general](/producto/vision-general/) si es tu primera vez.
 	</Card>
 	<Card title="Flujo operativo" icon="setting">
-		Las 4 fases del ciclo diario. Ver [Flujo operativo](/producto/flujo/), de la carga de insumos hasta la recomendación de compra.
+		Las 5 fases del ciclo, del cierre por voz a la compra. Ver [Flujo operativo](/producto/flujo/), de la carga de insumos hasta el registro de la compra.
 	</Card>
-	<Card title="Modelo de negocio" icon="star">
-		El problema en diez palabras, el perfil del cliente y las tres pruebas de un modelo de negocio. Ver [Modelo de negocio](/producto/modelo-de-negocio/).
+	<Card title="Cuenta y dispositivos" icon="laptop">
+		Un dueño, varias sucursales, un dispositivo compartido por local y el login por teléfono. Ver [Cuenta y dispositivos](/producto/cuenta-y-dispositivos/).
 	</Card>
-	<Card title="Pagos y pricing" icon="analytics">
-		Cómo se cobra y por qué. Ver [Pagos y pricing](/producto/pagos-y-pricing/) para la fórmula completa.
+	<Card title="Notificaciones" icon="comment">
+		Push nativo como canal por defecto y bandeja in-app como respaldo garantizado. Ver [Notificaciones](/producto/notificaciones/).
 	</Card>
 </CardGrid>
 
@@ -41,18 +41,6 @@ import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
 	title="Preguntas frecuentes"
 	href="/producto/preguntas-frecuentes/"
 	description="El '¿por qué?' y el '¿qué pasa si...?' de cada decisión, en un solo lugar."
-/>
-
-<LinkCard
-	title="Multi-sucursal"
-	href="/producto/multi-sucursal/"
-	description="Un dueño, varias sucursales, un dispositivo compartido por local."
-/>
-
-<LinkCard
-	title="Notificaciones y autenticación"
-	href="/producto/notificaciones-y-autenticacion/"
-	description="Push + bandeja in-app, login por teléfono y código de un solo uso."
 />
 
 <LinkCard
