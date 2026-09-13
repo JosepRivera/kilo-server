@@ -1,16 +1,9 @@
-// Panel "Preguntar a la IA": responde sobre TODA la documentación de Kilo,
-// nunca solo la página actual. Manda la pregunta a /api/ask (Groq, gpt-oss-20b).
-// Sin dependencias.
 (function () {
 	const CHAT_ICON =
 		'<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2A10 10 0 0 0 2 12a9.9 9.9 0 0 0 2.3 6.3l-2 2a1 1 0 0 0-.3 1.1 1 1 0 0 0 1 .6h9a10 10 0 0 0 0-20m0 18H5.4l1-1a1 1 0 0 0 0-1.3A8 8 0 1 1 12 20"/></svg>';
-	// Mismo ícono de flecha que ya usa el botón del hero — no uno nuevo inventado.
 	const SEND_ICON =
 		'<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17.92 11.62a1.001 1.001 0 0 0-.21-.33l-5-5a1.003 1.003 0 1 0-1.42 1.42l3.3 3.29H7a1 1 0 0 0 0 2h7.59l-3.3 3.29a1.002 1.002 0 0 0 .325 1.639 1 1 0 0 0 1.095-.219l5-5a1 1 0 0 0 .21-.33 1 1 0 0 0 0-.76Z"/></svg>';
 
-	// Conversor de markdown a HTML chico y sin dependencias: cubre lo que el
-	// modelo realmente devuelve (párrafos, **negrita**, listas, tablas).
-	// No es un parser completo de markdown, es suficiente para el caso de uso.
 	function escapeHtml(s) {
 		const div = document.createElement('div');
 		div.textContent = s;
@@ -21,15 +14,9 @@
 		return escapeHtml(text)
 			.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
 			.replace(/`(.+?)`/g, '<code>$1</code>')
-			.replace(/&lt;br\s*\/?&gt;/gi, '<br>'); // <br> dentro de una celda de tabla: la única etiqueta HTML que se deja pasar, sin atributos, no es un riesgo
+			.replace(/&lt;br\s*\/?&gt;/gi, '<br>');
 	}
 
-	// Convierte UN mensaje (puede tener varios párrafos/listas/tablas que van
-	// juntos) a un solo HTML — todo el contenido de un mensaje va en una sola
-	// burbuja. Dónde termina un mensaje y empieza el siguiente lo decide el
-	// propio modelo (separador "---MSG---"), no una regla mecánica por bloque:
-	// eso es lo único que sabe si una fórmula y su frase de presentación van
-	// juntas o no.
 	function renderMarkdownChunk(markdown) {
 		const blocks = markdown.trim().split(/\n{2,}/);
 		return blocks
@@ -37,14 +24,11 @@
 				const lines = block.split('\n').filter((l) => l.trim() !== '');
 				if (lines.length === 0) return '';
 
-				// Bloque de código ```...``` — se detecta antes que nada más,
-				// porque las comillas invertidas dentro rompen el resto de reglas.
 				if (lines.length >= 2 && lines[0].trim().startsWith('```') && lines[lines.length - 1].trim() === '```') {
 					const code = lines.slice(1, -1).map(escapeHtml).join('\n');
 					return `<pre><code>${code}</code></pre>`;
 				}
 
-				// Tabla: línea con "|" seguida de una fila separadora "|---|---|".
 				if (lines.length >= 2 && lines[0].includes('|') && /^\s*\|?\s*:?-{2,}/.test(lines[1])) {
 					const toCells = (line) =>
 						line
@@ -59,14 +43,11 @@
 					return `<div class="kilo-ask-table-wrap"><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
 				}
 
-				// Encabezado (# a ######): se muestra resaltado, no como <h1>-<h6>
-				// reales — dentro de una burbuja de chat un <h1> se ve desproporcionado.
 				const heading = lines[0].match(/^(#{1,6})\s+(.*)$/);
 				if (lines.length === 1 && heading) {
 					return `<p class="kilo-ask-heading">${inline(heading[2])}</p>`;
 				}
 
-				// Lista con guiones o numerada.
 				if (lines.every((l) => /^[-*]\s+/.test(l))) {
 					return `<ul>${lines.map((l) => `<li>${inline(l.replace(/^[-*]\s+/, ''))}</li>`).join('')}</ul>`;
 				}
@@ -74,7 +55,6 @@
 					return `<ol>${lines.map((l) => `<li>${inline(l.replace(/^\d+\.\s+/, ''))}</li>`).join('')}</ol>`;
 				}
 
-				// Párrafo normal.
 				return `<p>${lines.map(inline).join('<br>')}</p>`;
 			})
 			.filter((html) => html !== '')
@@ -88,7 +68,7 @@
 	];
 
 	function init() {
-		if (document.getElementById('kilo-ask-button')) return; // evita duplicados en navegación SPA
+		if (document.getElementById('kilo-ask-button')) return;
 
 		const button = document.createElement('button');
 		button.id = 'kilo-ask-button';
@@ -143,7 +123,6 @@
 		function openPanel() {
 			scrim.hidden = false;
 			panel.hidden = false;
-			// El que scrollea es <html>, no <body> — hay que bloquear el primero.
 			document.documentElement.style.overflow = 'hidden';
 			requestAnimationFrame(() => panel.classList.add('kilo-ask-panel--open'));
 			input.focus();
@@ -164,18 +143,12 @@
 			if (e.key === 'Escape' && !panel.hidden) closePanel();
 		});
 
-		// Textarea que crece con el contenido, hasta el tope que define el CSS
-		// (después scrollea adentro, como cualquier chat).
 		function resizeInput() {
 			input.style.height = 'auto';
 			input.style.height = `${input.scrollHeight}px`;
 		}
 		input.addEventListener('input', resizeInput);
 
-		// Enter envía, Shift+Enter hace un salto de línea (igual que cualquier chat).
-		// form.requestSubmit() ignora que el botón esté disabled, así que sin este
-		// chequeo Enter repetido mientras ya hay una pregunta en curso mandaba
-		// varias peticiones en paralelo (preguntas partidas, errores cruzados).
 		input.addEventListener('keydown', (e) => {
 			if (e.key === 'Enter' && !e.shiftKey) {
 				e.preventDefault();
@@ -186,25 +159,18 @@
 		function addBubble(role, text) {
 			const bubble = document.createElement('div');
 			bubble.className = `kilo-ask-bubble kilo-ask-bubble--${role}`;
-			bubble.textContent = text; // uso genérico: pregunta del usuario, "Pensando...", errores — todo texto plano
+			bubble.textContent = text;
 			messagesEl.append(bubble);
 			messagesEl.scrollTop = messagesEl.scrollHeight;
 			return bubble;
 		}
 
-		// El modelo decide dónde termina un mensaje y empieza el siguiente
-		// (separador literal "---MSG---"), no una regla mecánica por párrafo —
-		// así una fórmula y la frase que la presenta se quedan en la misma
-		// burbuja, y solo se parte donde de verdad cambia la idea.
 		async function addAssistantBlocks(markdown) {
 			const chunks = markdown
 				.split(/\n*---MSG---\n*/)
 				.map((c) => c.trim())
 				.filter((c) => c !== '');
 			for (const chunk of chunks) {
-				// Sin burbuja: la respuesta real va a todo el ancho, como Claude.ai.
-				// La burbuja chica de .kilo-ask-bubble--assistant se reserva para
-				// estados cortos ("Pensando...", errores).
 				const block = document.createElement('div');
 				block.className = 'kilo-ask-block';
 				block.innerHTML = renderMarkdownChunk(chunk);
@@ -214,20 +180,12 @@
 			}
 		}
 
-		// Historial de la conversación (para que "¿y eso cómo se resuelve?" tenga
-		// antecedente) — solo vive en memoria de esta sesión del panel, se manda
-		// junto con cada pregunta nueva. Se pierde al recargar la página, y eso
-		// está bien: no hace falta persistirlo.
-		// El servidor igual recorta a las últimas 4 idas y vueltas antes de
-		// mandarlo al modelo, pero sin este tope el array crecería sin límite en
-		// una sesión larga y cada pregunta mandaría un body cada vez más pesado
-		// por nada — se recorta acá también.
-		const MAX_HISTORY_MESSAGES = 8; // 4 turnos user+assistant, igual que el servidor
+		const MAX_HISTORY_MESSAGES = 8;
 		const history = [];
 
 		form.addEventListener('submit', async (e) => {
 			e.preventDefault();
-			if (submitBtn.disabled) return; // ya hay una pregunta en curso
+			if (submitBtn.disabled) return;
 			const question = input.value.trim();
 			if (!question) return;
 
@@ -251,9 +209,6 @@
 					history.push({ role: 'user', content: question }, { role: 'assistant', content: data.answer });
 					history.splice(0, history.length - MAX_HISTORY_MESSAGES);
 				} else if (res.ok) {
-					// Respaldo del lado del cliente: si por lo que sea llega vacío
-					// (no debería, el servidor ya reintenta esto), nunca mostrar
-					// una burbuja en blanco sin explicación.
 					pending.classList.add('kilo-ask-bubble--error');
 					pending.textContent = 'No llegó una respuesta. Intenta preguntar de nuevo.';
 				} else {
@@ -271,5 +226,5 @@
 	}
 
 	document.addEventListener('DOMContentLoaded', init);
-	document.addEventListener('astro:page-load', init); // navegación con View Transitions de Astro
+	document.addEventListener('astro:page-load', init);
 })();
