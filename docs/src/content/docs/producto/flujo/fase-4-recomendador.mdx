@@ -5,8 +5,6 @@ sidebar:
   order: 4
 ---
 
-import { Badge } from '@astrojs/starlight/components';
-import MediaSlot from '../../../../components/MediaSlot.astro';
 
 Antes de la siguiente visita programada al mercado (usando el **intervalo de compra**, declarado por categoría en la [Fase 1](/producto/flujo/fase-1-onboarding/)), Kilo calcula, por insumo:
 
@@ -20,9 +18,7 @@ cantidad a comprar = demanda predicha + umbral mínimo − stock actual
 
 ## Alertas de vencimiento por lote (FIFO)
 
-Cada compra registrada al volver del mercado queda como un **lote** — fecha, cantidad y costo (ver [Fase 5](/producto/flujo/fase-5-registro-compra/)). Internamente, el sistema **asume FIFO** (*first in, first out*: el lote más antiguo se consume primero) como la convención más segura para calcular el riesgo de vencimiento (¿por qué es segura aunque la cocina no la siga al pie de la letra? ver [Preguntas frecuentes](/producto/preguntas-frecuentes/)). Todo esto es invisible para el encargado de compras — nunca se le pregunta qué lote está usando en la cocina.
-
-Por esto es necesario rastrear los lotes por separado: sin un orden de consumo asumido, el sistema no podría decir **cuál lote específico** está en riesgo.
+Cada compra registrada al volver del mercado queda como un **lote** — fecha, cantidad y costo (ver [Fase 5](/producto/flujo/fase-5-registro-compra/)). Internamente, el sistema **asume FIFO** (*first in, first out*: el lote más antiguo se consume primero) para poder decir **cuál lote específico** está en riesgo, no solo que "algo" de ese insumo está por vencer. Todo esto es invisible para el encargado de compras — nunca se le pregunta qué lote está usando en la cocina.
 
 **Ejemplo:**
 
@@ -31,25 +27,20 @@ Por esto es necesario rastrear los lotes por separado: sin un orden de consumo a
 
 Una alerta consciente de lotes dice: *"El lote de pollo del lunes vence mañana"* — en vez de una advertencia genérica a nivel de insumo que no distingue cuál lote es el urgente.
 
-<MediaSlot tipo="Imagen" titulo="Lista de compra del día y alertas de vencimiento">
-	La pantalla de la mañana: insumo por insumo, cuánto comprar antes de ir al mercado, y los lotes marcados como próximos a vencer.
-</MediaSlot>
+![Lista de compra del día: insumo por insumo cuánto comprar, con una alerta destacada de un lote de pollo que vence mañana](../../../../assets/purchase-list-alerts.png)
 
-## Ahorro visible <Badge text="Por validar en piloto" variant="caution" />
+## Ahorro visible
 
-Kilo muestra una **comparación mes contra mes del valor de insumo vencido, para el mismo restaurante** — nunca contra una línea base hipotética de "si no usaras la app". Ejemplo:
+Kilo muestra una **comparación mes contra el mes anterior** del valor de insumo vencido, para el mismo restaurante — nunca contra una línea base hipotética de "si no usaras la app". Ejemplo, a medida que las predicciones maduran con el arranque en frío:
 
 - **Mes 1** (predicciones sin refinar, arranque en frío reciente): **S/380** perdidos en insumo vencido.
+- **Mes 3**: **S/250** perdidos.
 - **Mes 4** (predicciones ya refinadas con datos reales acumulados): **S/200** perdidos.
 
-Esto se muestra al encargado de compras como:
+Esto se muestra al encargado de compras comparando contra el mes inmediatamente anterior:
 
-> "Este mes perdiste S/200, S/180 menos que tu primer mes."
+> "Este mes perdiste S/200, S/50 menos que el mes pasado."
 
-**Por qué este ejemplo y no uno más ambicioso.** S/380 → S/200 es una reducción de aproximadamente **47%** en tres meses. Es deliberadamente conservador: las cifras publicadas para software de inventario y pronóstico de demanda se agrupan en un rango de **20-50% de reducción de desperdicio**, y esas son afirmaciones de los propios proveedores, no resultados auditados de forma independiente. Un ejemplo de 75% de reducción quedaría fuera de todo lo que la industria reporta y sería lo primero que un lector escéptico atacaría — y como esta es la cifra que el producto muestra como su resultado, tiene que aguantar ese ataque. Las cifras reales del piloto reemplazarán este ejemplo.
+De mes 1 a mes 4, S/380 → S/200 es una reducción de ~47% — un ejemplo deliberadamente conservador, no el mejor caso posible. Las cifras reales del piloto lo van a reemplazar.
 
-El "ahorro" mostrado es el **costo de compra de los insumos que ya no se desperdician**, no utilidad ni ingreso (más detalle en [Preguntas frecuentes](/producto/preguntas-frecuentes/)).
-
----
-
-Anterior: [Fase 3 — Procesamiento nocturno](/producto/flujo/fase-3-prediccion/) · Siguiente: [Fase 5 — Registro de compra](/producto/flujo/fase-5-registro-compra/)
+El "ahorro" mostrado es el **costo de compra de los insumos que ya no se desperdician**, no utilidad ni ingreso.
