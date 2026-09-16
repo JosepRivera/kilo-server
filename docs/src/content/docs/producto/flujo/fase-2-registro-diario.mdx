@@ -5,60 +5,39 @@ sidebar:
   order: 2
 ---
 
-import { Aside, Badge, Steps } from '@astrojs/starlight/components';
-import MediaSlot from '../../../../components/MediaSlot.astro';
+import { Badge, Steps } from '@astrojs/starlight/components';
 
-Cada noche, el encargado de compras graba un audio corto diciendo **cuánto stock queda** de cada insumo — no cuánto se usó, y **nunca** datos de ventas o soles. Este registro es puramente de inventario físico remanente: lo que se compra se registra aparte, en la [Fase 5](/producto/flujo/fase-5-registro-compra/).
+Cada noche, el encargado de compras graba un audio corto diciendo **cuánto stock queda** de cada insumo (el primer registro es distinto — ocurre al instalar la app, no de noche, ver [Fase 1](/producto/flujo/fase-1-onboarding/)) — no cuánto se usó, y **nunca** datos de ventas o soles. Este registro es puramente de inventario físico remanente: lo que se compra se registra aparte, en la [Fase 5](/producto/flujo/fase-5-registro-compra/).
 
 ## Pipeline de transcripción
 
 <Steps>
 1. **Groq Whisper Turbo** transcribe el audio a texto.
-2. **Claude Haiku** extrae los campos (insumo, cantidad) y puede **sugerir correcciones** a errores obvios de transcripción, usando como contexto el catálogo e historial propio del restaurante (ej. Whisper transcribió "trece" pero el contexto — el historial de ese insumo — sugiere que dijo "tres").
-3. El resultado se muestra **siempre editable** al encargado de compras antes de guardar — la IA nunca guarda de forma silenciosa.
+2. **Claude Haiku** extrae los campos (insumo, cantidad) de la transcripción.
+3. Si detecta un error obvio (ej. "trece" cuando el historial sugiere "tres"), **sugiere una corrección** — nunca la aplica sola.
 </Steps>
 
-<MediaSlot tipo="GIF" titulo="Dictado del cierre por voz">
+<video autoplay loop muted playsinline style="max-width: 320px; display: block; margin-inline: auto; border-radius: 12px;">
+	<source src="/videos/voice-registration-demo.webm" type="video/webm" />
+	<source src="/videos/voice-registration-demo.mp4" type="video/mp4" />
 	Se graba el audio, aparece la transcripción, y se muestra el resumen editable campo por campo antes de guardar.
-</MediaSlot>
+</video>
 
 ## Guardarraíl de anomalías
 
-El guardarraíl marca **"revisar"** en el resumen antes de guardar cuando una entrada dictada se sale de lo esperable. La regla tiene tres partes, y cada una existe por una razón concreta.
+El guardarraíl marca **"revisar"** en el resumen antes de guardar cuando el consumo de un insumo supera aproximadamente **2.5-3× la mediana de sus últimos 14 días** <Badge text="Por validar en piloto" variant="caution" />.
 
-### 1. Se evalúa el consumo derivado, no el stock dictado
+Lo que se evalúa es el **consumo derivado** (ver [cálculo de consumo](#cálculo-de-consumo-por-insumo) abajo), nunca el stock crudo que se dictó. Cada insumo tiene además un **piso mínimo**: por debajo de esa cantidad no se dispara el aviso, para que las cantidades chicas no generen ruido constante.
 
-Lo que el encargado de compras dicta es **stock remanente**, no consumo. Comparar el stock dictado contra un promedio histórico daría falsos positivos garantizados: **todo día de reposición** deja el stock legítimamente muy por encima de cualquier promedio móvil, sin que haya ningún error.
-
-Por eso la revisión se calcula sobre el **consumo derivado** (ver [Cálculo de consumo](#cálculo-de-consumo-por-insumo) más abajo), nunca sobre el número crudo que se dictó.
-
-### 2. Umbral: ~2.5-3× la mediana de los últimos 14 días <Badge text="Por validar en piloto" variant="caution" />
-
-El consumo diario de un solo insumo en un restaurante pequeño varía de forma rutinaria **30-50%** entre un día y otro. Un umbral de 50% dispararía la alerta casi a diario en los insumos de bajo volumen, y el encargado de compras terminaría confirmando a ciegas — que es exactamente la forma de convertir un guardarraíl en ruido inútil.
-
-La regla es: se marca "revisar" cuando el consumo derivado supera aproximadamente **2.5-3 veces la mediana de los últimos 14 días** de ese insumo. Se usa la **mediana y no el promedio** porque un solo día raro (una reposición mal registrada, un evento) arrastra el promedio y deja de detectar el siguiente día raro; la mediana lo aguanta mucho mejor.
-
-### 3. Piso mínimo por insumo
-
-Un porcentaje plano se equivoca en los dos extremos: 50% sobre 3 kg es simple ruido operativo, mientras que 50% sobre 40 kg es un error real que sí hay que atrapar. Por eso cada insumo tiene además un **piso mínimo absoluto**: por debajo de esa cantidad no se dispara la alerta aunque el múltiplo se supere, para que las cantidades chicas no generen avisos constantes.
-
-**Ejemplo:** si la mediana de consumo de pollo de los últimos 14 días es **4 kg/día**, el umbral queda en **10-12 kg**. Un consumo derivado de **13 kg** lo supera, así que se marca:
+**Ejemplo:** si la mediana de consumo de pollo es **4 kg/día**, el umbral queda en **10-12 kg**. Un consumo derivado de **13 kg** lo supera, así que se marca:
 
 > "Según lo que dictaste, hoy se consumieron 13 kg de pollo; normalmente son unos 4 kg. ¿Es correcto?"
 
-Esto es una **regla de umbral simple**, no un modelo de confianza de machine learning (aprendizaje automático) — deliberadamente simple y explicable. El encargado de compras tiene que poder entender por qué se le preguntó.
-
-<Aside type="tip" title="Estacionalidad semanal: mismo día contra mismo día">
-Comparar un viernes contra una mediana de 14 días que mezcla martes y viernes genera falsos positivos sistemáticos los días de mayor volumen — justo lo que Kilo asume y modela con estacionalidad semanal (ver [Fase 3](/producto/flujo/fase-3-prediccion/)). La regla usa la pieza que ya existe para resolver esto: una vez que hay al menos **4 muestras del mismo día de la semana** (lo que da el arranque en frío de 28 días), el umbral se calcula contra la **mediana de ese mismo día de la semana**, no contra los 14 días mezclados. Antes de tener esas 4 muestras, se usa la mediana general de 14 días como respaldo — acepta más falsos positivos, pero solo durante el arranque, nunca después.
-</Aside>
-
-## Estado "borrador" y resiliencia
-
-Todas las entradas dictadas quedan en un **estado "borrador" persistido localmente** hasta que se confirma el resumen completo. Si la sesión de grabación se interrumpe (llamada, se cierra la app, etc.), el borrador **se retoma**, no se reinicia desde cero.
+Es una **regla de umbral simple**, no un modelo de machine learning — deliberadamente explicable, para que el encargado de compras entienda por qué se le preguntó.
 
 ## Cálculo de consumo, por insumo
 
-```text title="Cálculo de consumo diario, por insumo"
+```text
 consumo(insumo, día) = stock(insumo, día anterior) − stock(insumo, día actual)
 ```
 
@@ -66,56 +45,19 @@ Este cálculo se hace **de forma independiente por insumo**, no por día complet
 
 ## Manejo de huecos (gaps)
 
-Hay dos casos distintos cuando falta un registro, y es importante distinguirlos.
+Un cierre puede faltar por dos motivos, y el sistema los trata distinto porque no son lo mismo: uno queda **REAL**, el otro **estimado**.
 
-### Caso (a): Cierre planificado
+**Planificado**: se marca con un **botón** ("hoy no hubo consumo", para un día puntual) o una **regla de cierre recurrente** configurada en el onboarding (ej. "cerrado los domingos", se aplica sola cada semana sin marcar nada). En ambos casos el día queda con consumo = **0**, marcado **REAL** — confirmado, no estimado. Un registro de voz real siempre gana sobre la regla recurrente: si un domingo excepcionalmente el local abre y se graba un cierre real, ese dato tiene prioridad sobre el default automático.
 
-Hay dos formas de marcar un cierre planificado, y se pueden usar juntas:
+**No planificado (olvidado)**: se resuelve repartiendo la diferencia entre el último dato real y el siguiente, de forma pareja entre los días del hueco, y marcando esos días como **estimado**.
 
-1. **Toggle diario** — "hoy no hubo consumo" — que el encargado de compras marca para **ese día específico**. Sirve para cierres puntuales que no siguen ningún patrón (un feriado suelto, un viaje imprevisto).
-2. **Regla de cierre recurrente**, configurable en el onboarding o más adelante — por ejemplo, "cerrado todos los domingos". Los días cubiertos por esta regla se tratan **automáticamente** como cierre real, sin necesidad de marcar el toggle cada semana.
+**Ejemplo — insumo: pollo, en kg de stock remanente registrado.** El sistema ve dos puntos reales, lunes (15 kg) y jueves (6 kg) → diferencia total = 9 kg consumidos en 3 días → se reparte parejo entre martes, miércoles y jueves. El consumo del lunes no aparece aquí porque dependería del stock del domingo, fuera de este recorte — si ese dato también fuera real, el consumo del lunes se calcularía normal, como **real**, sin necesidad de repartir nada:
 
-En ambos casos, el día se guarda con consumo = **0**, marcado como **REAL** (confirmado, no estimado) — cubre tanto "el local literalmente no abrió" como "abrió pero no hubo clientes", ya que ambos producen la misma señal (consumo cero).
-
-Un **registro de voz real siempre gana sobre la regla de cierre recurrente**: si un día está cubierto por la regla pero ese día, excepcionalmente, el local sí abre y el encargado de compras graba un registro real (por ejemplo, un domingo especial por una fecha festiva), ese registro tiene prioridad sobre el default automático. La regla recurrente es solo un valor por defecto — nunca descarta un dato real cuando existe.
-
-En resumen, hay cuatro situaciones posibles para un día dado:
-
-1. **Toggle diario marcado** → real, consumo = 0.
-2. **Regla de cierre recurrente, sin excepción ese día** → real, consumo = 0, automático.
-3. **Regla de cierre recurrente, pero con un registro de voz real ese día** → gana el registro real, no el default.
-4. **Silencio total**, sin ninguna de las anteriores → hueco no resuelto (caso b, a continuación).
-
-### Caso (b): Hueco olvidado / no planificado
-
-Se resuelve repartiendo la diferencia entre el último dato real y el siguiente dato real, de forma pareja entre los días del hueco, y marcando esos días como **"estimado"**.
-
-**Ejemplo completo — insumo: pollo, en kg de stock remanente registrado**
-
-| Día | Stock registrado | Tipo | Consumo calculado |
+| Día | Stock registrado | Consumo asignado | Tipo de consumo |
 |---|---|---|---|
-| Lunes | 15 kg | Real (confirmado) | — (referencia) |
-| Martes | *(no registrado)* | — | *(hueco)* |
-| Miércoles | *(no registrado)* | — | *(hueco)* |
-| Jueves | 6 kg | Real (confirmado) | — (referencia) |
+| Lunes | 15 kg | *(depende del domingo, fuera de este recorte)* | — |
+| Martes | *(no registrado)* | ~3 kg | Estimado |
+| Miércoles | *(no registrado)* | ~3 kg | Estimado |
+| Jueves | 6 kg | ~3 kg | Estimado |
 
-El sistema ve dos puntos reales: lunes (15 kg) y jueves (6 kg) → diferencia total = 9 kg consumidos en 3 días (martes, miércoles, jueves). Se reparte parejo:
-
-| Día | Consumo asignado | Tipo |
-|---|---|---|
-| Martes | ~3 kg | **Estimado** |
-| Miércoles | ~3 kg | **Estimado** |
-| Jueves | ~3 kg | **Estimado** |
-
-(¿Qué pasa si un cierre real queda sin regla que lo cubra? Ver [Preguntas frecuentes](/producto/preguntas-frecuentes/).)
-
-## "Estimado" pesa menos que "real"
-
-Los días marcados como **estimado** cuentan menos que los días **reales**, específicamente para:
-
-1. El contador de arranque en frío de **28 días** — solo los días reales cuentan para llegar al punto en que ya no queda ninguna estimación de arranque en frío para ese insumo.
-2. La actualización del modelo Holt-Winters (ver [Fase 3](/producto/flujo/fase-3-prediccion/)) — ver el detalle de cómo se pondera ahí.
-
----
-
-Anterior: [Fase 1 — Onboarding](/producto/flujo/fase-1-onboarding/) · Siguiente: [Fase 3 — Procesamiento nocturno](/producto/flujo/fase-3-prediccion/)
+Un día **estimado** solo pesa menos que uno **real** en el contador de arranque en frío de 28 días (ver [Fase 3](/producto/flujo/fase-3-prediccion/)) — en la actualización del modelo Holt-Winters, ambos cuentan igual por ahora.
