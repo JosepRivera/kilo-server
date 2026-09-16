@@ -12,7 +12,7 @@ El modelo de datos es **`cuenta → sucursales → insumos/stock/predicción`** 
 
 Cada sucursal tiene sus insumos, stock, registros y predicción **completamente independientes** — nunca se mezclan entre sucursales de una misma cuenta.
 
-Durante el onboarding se pide el nombre de la primera sucursal, con la opción de agregar más adelante (diseñarlo así desde el inicio evita una migración costosa después — ver [Preguntas frecuentes](/producto/preguntas-frecuentes/)).
+Durante el onboarding se pide el nombre de la primera sucursal, con la opción de agregar más adelante (diseñarlo así desde el inicio evita una migración costosa después).
 
 <MediaSlot tipo="Diagrama" titulo="Una cuenta, varias sucursales, un dispositivo por local">
 	La jerarquía cuenta → sucursales → insumos/stock/predicción, con los datos de cada sucursal separados entre sí, y el dispositivo de trabajo compartido vinculado a cada local.
@@ -53,7 +53,7 @@ Hay **dos puertas a la misma cuenta**, y esto es deliberado:
 
 Ambas están incluidas en el mismo servicio, que **no cobra nada hasta 50,000 usuarios activos al mes** — Kilo no se acerca ni de lejos a ese número. Lo único que se factura es el SMS.
 
-Vincular el dispositivo de una sucursal es **un evento único, no un login recurrente**: cuando se configura el dispositivo compartido de una sucursal nueva, el dueño lo autentica **una sola vez** con su propio teléfono + código de un solo uso, para vincular ese dispositivo a su cuenta/sucursal. A partir de ahí, el dispositivo se queda logueado indefinidamente: no hay una sesión que se cierre y se vuelva a abrir cada noche, ni una identidad distinta por persona que use el dispositivo (¿por qué el costo de OTP no es un problema aquí? ver [Preguntas frecuentes](/producto/preguntas-frecuentes/)).
+Vincular el dispositivo de una sucursal es **un evento único, no un login recurrente**: cuando se configura el dispositivo compartido de una sucursal nueva, el dueño lo autentica **una sola vez** con su propio teléfono + código de un solo uso, para vincular ese dispositivo a su cuenta/sucursal. A partir de ahí, el dispositivo se queda logueado indefinidamente: no hay una sesión que se cierre y se vuelva a abrir cada noche, ni una identidad distinta por persona que use el dispositivo.
 
 ### Por qué el teléfono es la puerta principal
 

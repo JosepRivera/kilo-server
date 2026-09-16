@@ -31,13 +31,17 @@ Kilo funciona igual tenga el restaurante POS (sistema de punto de venta) o RUC (
 
 ## Registro diario y huecos
 
+### ¿A qué día pertenece un registro grabado pasada la medianoche (ej. la 1am)?
+
+Se atribuye al día que recién está cerrando, no al que empieza — igual que ya funciona el "día de negocio" de cualquier bar o restaurante que cierra tarde. No hace falta definir un umbral nuevo para esto: se reutiliza el mismo corte que ya existe para el batch nocturno de Holt-Winters (~5-6am hora Perú, ver [Fase 3](/producto/flujo/fase-3-prediccion/)) — una grabación hecha entre medianoche y esa hora de corte cuenta para el día anterior.
+
 ### ¿Qué pasa si un día tiene la regla de cierre recurrente activada pero ese día excepcionalmente el restaurante sí abre?
 
 Nada se rompe. Un registro de voz real ese día siempre tiene prioridad sobre la regla recurrente, así que ese día queda con el dato real, no en cero — la regla recurrente es solo un valor por defecto automático, nunca descarta un dato real cuando existe (ver [Fase 2](/producto/flujo/fase-2-registro-diario/)).
 
-### ¿Qué pasa si un cierre real no queda cubierto por ninguna de las dos reglas (toggle o regla recurrente)?
+### ¿Qué pasa si un cierre real no queda cubierto por ninguna de las dos reglas (botón o regla recurrente)?
 
-Supongamos que el local estuvo cerrado martes y miércoles sin marcar ningún toggle ni regla, y el jueves hay un dato real de consumo alto porque se repuso todo el stock en un solo día. El sistema no tiene forma de saber que esos días no hubo actividad: simplemente ve un hueco de 3 días y reparte el consumo real del jueves entre los 3 por igual, distorsionando el patrón de ese día de la semana. Nada da error, pero si ocurre seguido (el mismo día cada semana), la precisión estacional del modelo para ese día se degrada — por eso conviene declarar una regla recurrente cuando el patrón de cierre es predecible (ver [Fase 2](/producto/flujo/fase-2-registro-diario/)).
+Supongamos que el local estuvo cerrado martes y miércoles sin marcar ningún botón ni regla, y el jueves hay un dato real de consumo alto porque se repuso todo el stock en un solo día. El sistema no tiene forma de saber que esos días no hubo actividad: simplemente ve un hueco de 3 días y reparte el consumo real del jueves entre los 3 por igual, distorsionando el patrón de ese día de la semana. Nada da error, pero si ocurre seguido (el mismo día cada semana), la precisión estacional del modelo para ese día se degrada — por eso conviene declarar una regla recurrente cuando el patrón de cierre es predecible (ver [Fase 2](/producto/flujo/fase-2-registro-diario/)).
 
 ### ¿Qué pasa si hay dos compras del mismo insumo el mismo día a precios distintos?
 
@@ -47,11 +51,39 @@ Cada compra ya se registra como su propio lote (fecha + cantidad + costo), así 
 
 Porque ocurre en otro momento del día: el cierre se dicta al cerrar la noche, la compra al volver del mercado. Además registra datos distintos — qué se compró, cuánto y a qué costo, no cuánto queda — y es lo que crea los lotes que hacen posibles las alertas de vencimiento. Tenerlo metido dentro del cierre diario hacía parecer que el ciclo empezaba por la compra, cuando en realidad la cierra (ver [Fase 5](/producto/flujo/fase-5-registro-compra/)).
 
+### ¿Por qué el guardarraíl de anomalías evalúa el consumo derivado y no el stock dictado directamente?
+
+Comparar el stock dictado contra un promedio histórico daría falsos positivos garantizados: todo día de reposición deja el stock legítimamente muy por encima de cualquier promedio móvil, sin que haya ningún error. Por eso se calcula sobre el consumo derivado (stock de ayer menos stock de hoy), nunca sobre el número crudo que se dictó (ver [Fase 2](/producto/flujo/fase-2-registro-diario/)).
+
+### ¿Por qué el umbral del guardarraíl usa la mediana de 14 días y no un promedio, ni un porcentaje plano?
+
+El consumo diario de un insumo en un restaurante pequeño varía rutinariamente 30-50% entre un día y otro — un umbral de 50% dispararía la alerta casi a diario en insumos de bajo volumen, y el encargado de compras terminaría confirmando a ciegas, la forma clásica de convertir un guardarraíl en ruido inútil. Se usa la mediana y no el promedio porque un solo día raro (una reposición mal registrada) arrastra el promedio y deja de detectar el siguiente día raro; la mediana lo aguanta mejor. Y un porcentaje plano se equivoca en los dos extremos (50% sobre 3 kg es ruido, 50% sobre 40 kg es un error real) — por eso cada insumo tiene además un piso mínimo absoluto (ver [Fase 2](/producto/flujo/fase-2-registro-diario/)).
+
+### ¿Cómo ajusta el guardarraíl por estacionalidad semanal?
+
+Comparar un viernes contra una mediana de 14 días que mezcla martes y viernes genera falsos positivos sistemáticos los días de mayor volumen. Por eso, una vez que hay al menos 4 muestras del mismo día de la semana (lo que da el arranque en frío de 28 días — ver [Fase 3](/producto/flujo/fase-3-prediccion/)), el umbral se calcula contra la mediana de ese mismo día de la semana, no contra los 14 días mezclados. Antes de esas 4 muestras se usa la mediana general de 14 días como respaldo — acepta más falsos positivos, pero solo durante el arranque.
+
+### ¿Qué pasa si la grabación de voz del cierre se interrumpe a la mitad?
+
+Nada se pierde: todas las entradas dictadas quedan en un estado "borrador" persistido localmente hasta que se confirma el resumen completo. Si la sesión se interrumpe (una llamada entra, se cierra la app), el borrador se retoma donde quedó, no se reinicia desde cero (ver [Fase 2](/producto/flujo/fase-2-registro-diario/)).
+
 ## Predicción
+
+### ¿Por qué el arranque en frío dura exactamente 28 días?
+
+28 días son 4 ciclos semanales, no uno — la justificación depende de eso. Holt-Winters con estacionalidad semanal (m=7) necesita como mínimo 2 ciclos completos (14 días) solo para inicializar los índices estacionales, y la práctica estándar pide 3-4 ciclos antes de que esos índices sean mínimamente estables — por eso 28 días es un mínimo práctico defendible para el MVP, no el punto donde el modelo ya está maduro (para índices genuinamente estables sobre datos ruidosos de restaurante, lo deseable serían 8-12 semanas). El umbral tampoco significa "~100% de confianza": significa exactamente que ya no queda ninguna estimación de arranque en frío en el historial de ese insumo (ver [Fase 3](/producto/flujo/fase-3-prediccion/)).
+
+### ¿Por qué un día estimado no pesa menos que uno real en la actualización de Holt-Winters, si técnicamente sería más preciso?
+
+Ponderar días estimados con menos peso (suavizamiento exponencial ponderado) es una extensión real y conocida del método, pero implementar una ponderación por observación individual requiere una implementación de Holt-Winters no estándar — la mayoría de librerías listas para usar no lo soportan de forma nativa. Es una complejidad desproporcionada para un piloto de 3-5 restaurantes, así que queda como mejora de v2, no como alcance del MVP (ver [Fase 2](/producto/flujo/fase-2-registro-diario/)).
 
 ### ¿Por qué FIFO es una asunción segura para las alertas de vencimiento, aunque la cocina no la siga al pie de la letra?
 
 Si la práctica real en cocina no coincide exactamente con FIFO (se consume primero lo más viejo), la cifra total de soles perdidos al mes sigue siendo precisa: está determinada por el stock total remanente frente al consumo esperado, no por el orden de uso. Lo único que podría ser impreciso es a qué lote específico se atribuye una alerta puntual, no el total de desperdicio (ver [Fase 4](/producto/flujo/fase-4-recomendador/)).
+
+### ¿Por qué el ejemplo de ahorro (S/380 → S/200) es tan conservador y no uno más ambicioso?
+
+Esa reducción es de aproximadamente 47%. Las cifras publicadas para software de inventario y pronóstico de demanda se agrupan en un rango de 20-50% de reducción de desperdicio — pero son afirmaciones de los propios proveedores, no resultados auditados de forma independiente. Un ejemplo de 75% quedaría fuera de todo lo que la industria reporta y sería lo primero que un lector escéptico atacaría — y como esta es la cifra que el producto muestra como su resultado, tiene que aguantar ese ataque. Las cifras reales del piloto van a reemplazar este ejemplo (ver [Fase 4](/producto/flujo/fase-4-recomendador/)).
 
 ### ¿Qué significa exactamente "ahorro" en los reportes?
 
@@ -75,4 +107,4 @@ Para eso el login **no es solo por teléfono**. Google Sign-In se ofrece como **
 
 ### ¿Por qué el teléfono es el método primario y no Google?
 
-Porque calca el patrón que el dueño ya usa todos los días con Yape, y funciona en un dispositivo de trabajo compartido entre personal, donde una cuenta de Gmail personal encaja peor. Google queda como segundo método, no como reemplazo (ver [Decisiones descartadas](/producto/descartado/)).
+Porque calca el patrón que el dueño ya usa todos los días con Yape, y funciona en un dispositivo de trabajo compartido entre personal, donde una cuenta de Gmail personal encaja peor. Google queda como segundo método, no como reemplazo.

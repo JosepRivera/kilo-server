@@ -12,11 +12,11 @@ Esta página junta todo lo que Kilo evaluó y decidió **no** construir (por aho
 ## Registro diario y manejo de huecos
 
 - **Promedio ponderado por cantidad** para el costo cuando hay dos compras del mismo insumo el mismo día a precios distintos — descartado; como cada compra ya se registra como su propio lote (fecha + cantidad + costo), dos compras del mismo día a precios distintos se tratan simplemente como dos lotes separados, el mismo mecanismo ya usado para compras en días distintos, sin caso especial ni pérdida de precisión — [ver contexto](/producto/flujo/fase-2-registro-diario/).
-- **Depender únicamente de un toggle diario manual** para cierres recurrentes (ej. "cerrado los domingos") — descartado como único mecanismo, por el riesgo real de que el encargado de compras se olvide de marcarlo cada semana; se complementa con una regla de cierre recurrente configurable, que un registro de voz real siempre anula para una fecha puntual — [ver contexto](/producto/flujo/fase-2-registro-diario/).
+- **Depender únicamente de un botón diario manual** para cierres recurrentes (ej. "cerrado los domingos") — descartado como único mecanismo, por el riesgo real de que el encargado de compras se olvide de marcarlo cada semana; se complementa con una regla de cierre recurrente configurable, que un registro de voz real siempre anula para una fecha puntual — [ver contexto](/producto/flujo/fase-2-registro-diario/).
 
 ## Predicción y cold-start
 
-- **Mezclar datos reales de un restaurante con los de otro, o sustituir predicciones reales día a día con datos agregados de Capa 1** — nunca ocurre, ni siquiera cuando existe patrón agregado disponible para ese tipo de cocina; el dato agregado solo mejora la primera estimación a ciegas del día 0 — [ver contexto](/producto/flujo/fase-3-prediccion/).
+- **Mezclar datos reales de un restaurante con los de otro, o sustituir predicciones reales día a día con datos agregados de Capa 1** — nunca ocurre, ni siquiera cuando existe patrón agregado disponible para ese tipo de cocina; el dato agregado solo mejora la primera estimación inicial a ciegas — [ver contexto](/producto/flujo/fase-3-prediccion/).
 
 ## Recomendador de compras
 
