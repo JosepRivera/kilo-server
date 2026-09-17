@@ -5,21 +5,28 @@ sidebar:
   order: 5
 ---
 
-import MediaSlot from '../../../../components/MediaSlot.astro';
+import { Badge } from '@astrojs/starlight/components';
+import DemoVideo from '../../../../components/DemoVideo.astro';
 
 Mismo mecanismo de voz de la [Fase 2](/producto/flujo/fase-2-registro-diario/), usado en otro momento del día: al volver del mercado, el encargado de compras registra **qué compró, cuánto y a qué costo**.
 
-Cada compra crea un nuevo **"lote"**: fecha de compra + cantidad + costo.
+<DemoVideo name="purchase-registration-demo" label="Registro de compra por voz al volver del mercado">
+	Se dicta lo comprado, con cantidad y costo, y el resumen editable muestra los lotes que se van a crear antes de guardar.
+</DemoVideo>
+
+## Insumos nuevos
+
+Si compra algo que nunca había registrado, dispara la misma resolución de insumo de la [Fase 1](/producto/flujo/fase-1-configuracion-inicial/) — exacto, ambiguo con selector, o crear uno nuevo si no coincide ni con el catálogo maestro. Comprar por primera vez es tan válido como registrar stock por primera vez para dar de alta un insumo.
+
+## Lotes
+
+Cada compra crea un nuevo **"lote"**: fecha de compra + cantidad + costo + **fecha de vencimiento**. La fecha de vencimiento no la dicta el encargado de compras — sale de una vida útil estándar por insumo del catálogo maestro (ej. "pollo fresco: 3 días") <Badge text="Por validar en piloto" variant="caution" />, pre-llenada en el resumen editable antes de guardar, para que la corrija ahí mismo si ese lote en particular es distinto (una promoción con fecha de vencimiento más corta, por ejemplo).
 
 Dos compras del mismo insumo el mismo día a precios distintos son simplemente dos lotes separados, sin caso especial — el mismo mecanismo que ya se usa para compras en días distintos, y cada lote conserva su propio costo real.
 
-<MediaSlot tipo="GIF" titulo="Registro de compra por voz al volver del mercado">
-	Se dicta lo comprado, con cantidad y costo, y el resumen editable muestra los lotes que se van a crear antes de guardar.
-</MediaSlot>
+Si el **precio unitario** dictado se sale mucho de la mediana de compras anteriores de ese insumo, se marca "revisar" antes de guardar <Badge text="Por validar en piloto" variant="caution" /> — igual que el control de anomalías de la Fase 2, pero sobre precio, no cantidad (la cantidad comprada varía legítimamente; el precio unitario del mismo insumo, no tanto).
 
-## Por qué se rastrean los lotes por separado
-
-Sin un orden de consumo asumido, el sistema no podría decir **cuál lote específico** está en riesgo de vencer. Por eso cada compra queda como su propio lote y el sistema asume **FIFO** (el lote más antiguo se consume primero) para calcular el riesgo — es lo que hace posible una alerta que dice cuál lote es el urgente, en vez de una advertencia genérica a nivel de insumo (ver [Fase 4](/producto/flujo/fase-4-recomendador/)).
+Cada lote alimenta las alertas de vencimiento por FIFO de la [Fase 4](/producto/flujo/fase-4-recomendador/).
 
 ## El ciclo cierra aquí
 
