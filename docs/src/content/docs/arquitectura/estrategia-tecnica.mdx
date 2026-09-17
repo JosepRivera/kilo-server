@@ -1,0 +1,72 @@
+---
+title: Estrategia técnica
+description: Por qué el stack es Bun + ElysiaJS + Postgres, las convenciones de proyecto de Elysia, y las decisiones de validación, auth, testing y documentación de API.
+sidebar:
+  order: 3
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+*Estado: diseño — aún no implementado.*
+
+El stack está fijo: **Bun + ElysiaJS** para el API, **Postgres** como única fuente de verdad. Esta página explica el porqué de cada pieza y las convenciones de proyecto que se siguen en todo el código — no es una decisión abierta a debate en este documento (ver también [Objetivos y restricciones](/arquitectura/objetivos-restricciones/) y el registro de [Decisiones técnicas](/arquitectura/decisiones/)).
+
+## Por qué Bun + ElysiaJS
+
+TypeScript de punta a punta — cliente, API, y hasta la lógica de pronóstico escrita a mano — importa más para un equipo solo o muy pequeño que cualquier ventaja específica de las alternativas: el ecosistema más grande de Node, o las librerías de ML nativas de Python (`statsmodels`). Un solo lenguaje significa un solo conjunto de herramientas, un solo tipo de dependencia que actualizar, y la posibilidad de compartir tipos entre cliente y servidor. Elysia agrega inferencia de tipos end-to-end sobre Bun, que ya es rápido de por sí para levantar y correr el API.
+
+## Por qué Postgres solo, sin cola de mensajes ni base analítica separada
+
+A la escala del piloto y de su primer año, Postgres solo es más que suficiente — agregar una cola de mensajes o una base de datos analítica separada resolvería un problema de escala que Kilo todavía no tiene, al costo de una pieza más que operar sin equipo de infraestructura.
+
+Los números concretos: a **100 restaurantes × 60 insumos**, un cierre diario por insumo genera **~2.2 millones de filas de consumo al año** — trivial para Postgres, muy por debajo de donde una base de series de tiempo empieza a justificarse. El batch nocturno recorre **unas pocas miles de series de tiempo cortas** (28-90+ días cada una); el ajuste de Holt-Winters en sí es sub-segundo de cómputo real por restaurante — el costo real del batch es el número de idas y vueltas a Postgres, no el cómputo estadístico. No hay nada aquí que una cola de mensajes resuelva que un `for` sobre restaurantes con manejo de errores por iteración no resuelva ya (ver [Motor de predicción — batch nocturno](/arquitectura/motor-prediccion/#batch-nocturno)).
+
+## Convención de estructura de proyecto en Elysia
+
+- **Carpetas por feature**, no por tipo de archivo. Cada feature (catálogo, registro diario, compras, predicciones) es su propia carpeta con sus rutas, su modelo de validación y su lógica.
+- **Una instancia de Elysia por feature, como "controlador".** Esa instancia define las rutas HTTP de la feature y delega la lógica de negocio real a funciones puras o clases estáticas — nunca la implementa inline en el handler.
+- **La lógica de negocio pura nunca vive en `.decorate()`.** `decorate()` es para datos de request (el usuario autenticado, el restaurante activo) que Elysia inyecta por request — no para servicios ni lógica de negocio, que son funciones o clases estáticas normales de TypeScript, testeables sin necesidad de un contexto de Elysia.
+- **Encadenamiento de métodos es obligatorio**, no una preferencia de estilo:
+
+  ```ts
+  // Correcto — el encadenamiento preserva la inferencia de tipos de Elysia
+  const app = new Elysia()
+      .get('/insumos', () => listarInsumos())
+      .post('/insumos', ({ body }) => crearInsumo(body));
+
+  // Incorrecto — reasignar rompe la inferencia de tipos entre rutas
+  let app = new Elysia();
+  app.get('/insumos', () => listarInsumos());
+  app.post('/insumos', ({ body }) => crearInsumo(body));
+  ```
+
+  Esto no es un detalle de estilo: sin encadenamiento, Elysia pierde la inferencia de tipos que hace útil a Eden Treaty (ver Testing abajo) — vale la pena escribirlo explícito porque es un error fácil de cometer sin darse cuenta de por qué rompe algo.
+
+## Validación
+
+**TypeBox**, el validador nativo de Elysia. Los modelos se registran vía `.model()` en cada instancia, para que las rutas los referencien por nombre y ganen validación de request/response e inferencia de tipos sin repetir el esquema.
+
+## Manejo de errores
+
+Vía `status()`, no `error()`. `error()` fue **removido** en Elysia 1.4, no solo deprecado — cualquier snippet o ejemplo viejo que use `error()` va a fallar directamente en tiempo de compilación o ejecución, no dar un warning. Vale la pena dejarlo explícito acá para ahorrar una sesión de debugging a quien toque código o ejemplos antiguos.
+
+## Auth: sesiones opacas en Postgres, no JWT
+
+Tokens de sesión opacos guardados en Postgres, no JWT. Dos razones concretas:
+
+- **La app móvil tiene sesiones de vida larga**, y el producto necesita revocación real — un teléfono robado o una suscripción vencida tienen que poder cortar el acceso de inmediato. Un JWT no se puede revocar sin una lista de bloqueo, que termina siendo el mismo round-trip a base de datos que una sesión opaca, pero con más complejidad.
+- **El volumen de requests autenticados en el piloto es bajísimo** (~100/día). Un round-trip a Postgres por request no cuesta nada perceptible a este volumen — la ventaja de rendimiento de JWT sin verificación en base de datos no aplica todavía.
+
+Ver también [ADR 0003](/arquitectura/decisiones/0003-sesiones-en-vez-de-jwt/).
+
+## Testing
+
+`bun test` corriendo directamente contra `app.handle()` — sin levantar un servidor HTTP real para los tests unitarios/de integración de rutas. **Eden Treaty** (el cliente tipado de Elysia) para una suite delgada de humo end-to-end, que ejercita los flujos reales sobre un servidor corriendo, sin duplicar la cobertura ya hecha con `app.handle()`.
+
+## Documentación de API
+
+**`@elysiajs/openapi`**, no `@elysiajs/swagger` — `@elysiajs/swagger` está descontinuado para Elysia 1.4. Se sirve en `/openapi` (ver [Despliegue](/arquitectura/despliegue/#documentación-de-api)).
+
+<Aside type="note">
+El ORM (Drizzle) y el modelo de datos completo tienen su propia página — ver [Modelo de datos](/arquitectura/modelo-datos/).
+</Aside>

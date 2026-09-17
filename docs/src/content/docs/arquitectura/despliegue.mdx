@@ -1,0 +1,55 @@
+---
+title: Despliegue
+description: Docker multi-stage, dónde hostear, y cómo se dispara el job nocturno según el tipo de hosting elegido.
+sidebar:
+  order: 9
+---
+
+import { Aside, Badge } from '@astrojs/starlight/components';
+
+*Estado: diseño — aún no implementado.*
+
+## Docker
+
+Dockerfile multi-stage: una etapa de build sobre `oven/bun` que compila el binario, y una imagen de runtime distroless para ejecutarlo.
+
+```text title="Etapa de build (esquema)"
+FROM oven/bun AS build
+...
+RUN bun build --compile --minify-whitespace --minify-syntax \
+    --target bun --outfile server src/index.ts
+```
+
+```text title="Etapa de runtime (esquema)"
+FROM gcr.io/distroless/base
+COPY --from=build /app/server /server
+ENTRYPOINT ["/server"]
+```
+
+Dos advertencias reales que vale la pena dejar por escrito acá:
+
+- Los binarios de `bun build --compile` necesitan hardware con **AVX2** — no correr en hardware más viejo o ciertos entornos ARM restringidos sin verificarlo antes.
+- Un `--minify` completo **cambia (mangling) los nombres de función**, lo que rompe el trazado si alguna vez se agrega OpenTelemetry u otra herramienta de tracing que dependa de nombres de función legibles. Si eso pasa, hay que revisar qué nivel de minify sigue siendo seguro.
+
+## Dónde hostear
+
+**API y Postgres en la misma región**, para mantener rápido el camino caliente (registro de voz → base de datos). Las llamadas externas del pipeline de voz (Scribe/Groq, Claude Haiku) caen en infraestructura de EE.UU. sin importar dónde corra el API — así que un host en una región de EE.UU. es un default razonable, en vez de optimizar por cercanía a Lima.
+
+<Aside type="caution">
+Esto es un tradeoff real, todavía no medido — hay que medirlo una vez que la app exista, no asumirlo. Si la latencia real hacia Lima resulta ser el cuello de botella dominante (más que la latencia hacia los servicios de voz en EE.UU.), vale la pena reconsiderar la región.
+</Aside>
+
+**Requisito**: un host de un solo contenedor, barato, con Postgres gestionado — no algo más elaborado a esta escala, para un equipo solo o muy pequeño sin presupuesto de infraestructura. Dos ejemplos concretos de ese tipo de host (Railway, Fly.io) sirven como referencia de la categoría, no como una elección cerrada — los detalles de precio de cualquiera de los dos pueden cambiar.
+
+## Disparo del job nocturno
+
+Un endpoint HTTP interno, `POST /internal/jobs/recompute`, protegido por un header de secreto compartido — disparado por el mecanismo de scheduling que ofrezca el host elegido:
+
+- **Cron in-process** (un plugin de cron dentro del propio proceso Bun) si el host mantiene el contenedor siempre corriendo.
+- **Un scheduler externo** golpeando el endpoint, si el host puede escalar el contenedor a cero — un cron in-process simplemente no dispara si el contenedor no está corriendo.
+
+**Red de seguridad ante doble disparo o caída a mitad de corrida**: una tabla `job_runs` con restricción única sobre la fecha de la corrida hace que un disparo duplicado sea un no-op seguro; una fila sin terminar que queda de una caída a mitad de proceso es justo lo que el siguiente arranque revisa para decidir si retomar o marcar como fallida (ver el diagrama de secuencia en [Flujos en ejecución](/arquitectura/flujos-ejecucion/#2-batch-nocturno--de-cron-a-forecasts)).
+
+## Documentación de API
+
+`@elysiajs/openapi`, servida en `/openapi` (ver también [Estrategia técnica](/arquitectura/estrategia-tecnica/#documentación-de-api)).

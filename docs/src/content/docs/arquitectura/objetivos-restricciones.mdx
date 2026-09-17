@@ -1,0 +1,31 @@
+---
+title: Objetivos y restricciones
+description: Qué tiene que cumplir el sistema, qué límites reales lo rodean, y por qué no se construye para una escala que todavía no existe.
+sidebar:
+  order: 1
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+*Estado: diseño — aún no implementado.*
+
+## Objetivos
+
+Estos son los objetivos que shape cada decisión técnica del resto de esta sección. No son aspiraciones genéricas de "sistema rápido y confiable" — son concretos porque están atados a cómo se va a usar Kilo de verdad.
+
+- **El pipeline de voz tiene que sentirse instantáneo para alguien no técnico, en un mercado ruidoso.** El encargado de compras dicta parado en la cocina o en el mercado, no frente a un teclado. Cada segundo de espera entre grabar y ver el resumen editable es fricción que compite directamente con volver a hacerlo "a ojo". Esto es lo que empuja la elección de [transcripción y extracción](/arquitectura/pipeline-voz/) y de un flujo dictar-y-revisar en vez de streaming.
+- **El batch nocturno tiene que correr confiable, sin supervisión.** Nadie va a estar mirando logs a las 5am. Si el job falla para un restaurante, no puede tumbar la predicción de los otros 99 — ver el diseño del [batch nocturno](/arquitectura/motor-prediccion/#batch-nocturno).
+- **El sistema tiene que ser barato de operar a la escala del piloto.** El presupuesto de inferencia (transcripción, extracción, LLM de resolución de insumos) apunta a **~US$30-50/mes en total** para el piloto completo — el detalle de esa cuenta está en [Pipeline de voz](/arquitectura/pipeline-voz/#modelo-de-costo). Esto descarta cualquier arquitectura que agregue costo fijo de infraestructura (colas gestionadas, servicios separados, bases de datos especializadas) antes de que haya volumen real que lo justifique.
+- **Los datos de un restaurante nunca se mezclan con los de otro.** Kilo agrega patrones anonimizados entre restaurantes del mismo tipo de cocina (Capa 1, ver [Motor de predicción](/arquitectura/motor-prediccion/)), pero eso es agregación estadística con un piso de anonimato, nunca acceso cruzado a datos individuales. El mecanismo que lo garantiza está en [Modelo de datos](/arquitectura/modelo-datos/#aislamiento-entre-restaurantes).
+
+## Restricciones
+
+- **Equipo solo o muy pequeño, presupuesto cercano a cero.** No hay equipo de infraestructura, ni presupuesto para servicios gestionados premium. Cada pieza nueva del sistema (una cola, una base de datos separada, un segundo runtime) es una pieza que ese mismo equipo pequeño tiene que operar y depurar a las 3am si algo falla.
+- **El piloto son 3-5 restaurantes, escalando a decenas-cientos en el año 1.** No miles, no un SaaS masivo desde el día uno. Esta restricción es la que más pesa en el resto de esta sección: significa que Postgres solo, sin extensiones de series de tiempo, sin cola de mensajes, sin microservicios, es más que suficiente — y agregar cualquiera de esas piezas ahora sería resolver un problema de escala que Kilo todavía no tiene.
+
+  <Aside type="caution" title="Sobre-ingeniería">
+  Esta restricción se repite explícitamente en varias páginas de esta sección porque es la que más fácil se olvida: es tentador diseñar para "cuando tengamos 10,000 restaurantes", pero eso le cuesta velocidad de desarrollo real hoy, a un equipo que hoy es solo o muy pequeño, para resolver un problema que hoy no existe. Cada página de esta sección dice explícitamente cuándo una pieza más pesada (TimescaleDB, una cola, RLS, un segundo runtime) sí tendría sentido — y por qué todavía no.
+  </Aside>
+
+- **Usuarios no técnicos, a menudo en entornos ruidosos o con conectividad baja.** El encargado de compras dicta en el mercado o en la cocina, con datos móviles prepago, no wifi de oficina. Esto empuja decisiones concretas: audio comprimido y subido entero en vez de streaming (ver [Pipeline de voz](/arquitectura/pipeline-voz/)), borradores persistidos localmente, y un resumen editable como capa real de corrección de errores, no un adorno de UX.
+- **El stack ya está decidido: Bun + ElysiaJS + Postgres.** No es una decisión abierta a debate en esta documentación — el razonamiento detrás de por qué se fijó así está en [Estrategia técnica](/arquitectura/estrategia-tecnica/) y en el registro de [Decisiones técnicas](/arquitectura/decisiones/).

@@ -1,0 +1,71 @@
+---
+title: Visión general técnica
+description: Qué cubre la sección de Arquitectura, cómo leerla y un mapa de las páginas que la componen.
+sidebar:
+  order: 0
+---
+
+import { CardGrid, Card } from '@astrojs/starlight/components';
+
+*Estado: diseño — aún no implementado.*
+
+Esta sección documenta **cómo se va a construir** lo que [Producto](/producto/vision-general/) ya describe qué hace. Producto explica el problema, el cliente y las 5 fases del ciclo operativo desde la perspectiva del dueño del restaurante; Arquitectura explica el sistema técnico que hace posible ese ciclo — el API, la base de datos, el motor de predicción, el pipeline de voz y cómo se despliega todo — desde la perspectiva de quien lo va a construir y mantener.
+
+Ahora mismo el backend es un stub de "hello world": esta sección es el diseño que va a guiar la implementación, no una descripción de código que ya existe. Donde algo todavía no está validado, se marca explícitamente con <code>Por validar en piloto</code> en vez de fingir una certeza que no existe.
+
+## Cómo leerla
+
+No hace falta leerla en orden estricto, pero si es la primera vez, este orden tiene sentido:
+
+1. **Objetivos y restricciones** — el "por qué" detrás de cada decisión posterior: quién construye esto, con qué presupuesto, y para cuántos restaurantes.
+2. **Contexto del sistema** y **Piezas del sistema** — los dos diagramas C4 (nivel 1 y 2) que ubican a Kilo entre sus usuarios y sus integraciones externas, y después abren la caja para mostrar sus contenedores internos.
+3. Las páginas de datos y predicción, y la de voz — el detalle técnico de las dos partes más complejas del sistema.
+4. **Flujos en ejecución** — cómo se conectan esas piezas en tres escenarios reales, a nivel de mensaje.
+5. **Despliegue**, **Decisiones técnicas** y **Riesgos y deuda técnica** — cómo corre esto en producción, qué alternativas se descartaron y por qué, y qué falta madurar.
+
+## Mapa de la sección
+
+<CardGrid>
+	<Card title="Objetivos y restricciones" icon="approve-check-circle">
+		Qué tiene que cumplir el sistema, qué límites reales lo rodean (equipo, presupuesto, escala del piloto) y por qué no hay que construir para una escala que todavía no existe. [Ver el detalle](/arquitectura/objetivos-restricciones/).
+	</Card>
+	<Card title="Contexto del sistema" icon="random">
+		Diagrama C4 nivel 1: quién usa Kilo y con qué servicios externos conversa (transcripción, extracción, notificaciones, catálogo de precios). [Ver el detalle](/arquitectura/contexto-sistema/).
+	</Card>
+	<Card title="Estrategia técnica" icon="setting">
+		El porqué del stack fijo — Bun, ElysiaJS, Postgres sin cola de mensajes — y las convenciones de proyecto que se siguen en todo el código. [Ver el detalle](/arquitectura/estrategia-tecnica/).
+	</Card>
+	<Card title="Piezas del sistema" icon="server">
+		Diagrama C4 nivel 2: los contenedores del sistema (API, base de datos, job nocturno, cliente) y cómo se hablan entre sí. [Ver el detalle](/arquitectura/piezas-sistema/).
+	</Card>
+</CardGrid>
+
+<CardGrid>
+	<Card title="Modelo de datos" icon="database">
+		El esquema completo, organizado por subsistema, con el razonamiento detrás de cada decisión no obvia — de la fórmula de consumo al aislamiento entre restaurantes. [Ver el detalle](/arquitectura/modelo-datos/).
+	</Card>
+	<Card title="Motor de predicción" icon="analytics">
+		Holt-Winters en detalle técnico: por qué corre en proceso, estacionalidad aditiva, el fallback para insumos intermitentes y la fórmula real del umbral mínimo. [Ver el detalle](/arquitectura/motor-prediccion/).
+	</Card>
+</CardGrid>
+
+<CardGrid>
+	<Card title="Pipeline de voz" icon="comment-alt">
+		Las dos etapas (transcripción y extracción), la resolución de insumos con trigramas + LLM, y el modelo de costo real por restaurante. [Ver el detalle](/arquitectura/pipeline-voz/).
+	</Card>
+	<Card title="Flujos en ejecución" icon="right-arrow">
+		Tres diagramas de secuencia a nivel de mensaje: el cierre diario, el batch nocturno y el registro de compra. [Ver el detalle](/arquitectura/flujos-ejecucion/).
+	</Card>
+</CardGrid>
+
+<CardGrid>
+	<Card title="Despliegue" icon="rocket">
+		Docker multi-stage, dónde hostear, y cómo se dispara el job nocturno según el tipo de hosting elegido. [Ver el detalle](/arquitectura/despliegue/).
+	</Card>
+	<Card title="Decisiones técnicas" icon="open-book">
+		El registro de ADRs: las decisiones con una alternativa real que se consideró y se descartó, con el porqué. [Ver el detalle](/arquitectura/decisiones/).
+	</Card>
+	<Card title="Riesgos y deuda técnica" icon="warning">
+		Lo que todavía no está validado o resuelto, con su mitigación o su plan de monitoreo durante el piloto. [Ver el detalle](/arquitectura/riesgos/).
+	</Card>
+</CardGrid>

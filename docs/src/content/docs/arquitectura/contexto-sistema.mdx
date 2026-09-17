@@ -1,0 +1,51 @@
+---
+title: Contexto del sistema
+description: Diagrama C4 nivel 1 — Kilo, sus usuarios y los servicios externos con los que conversa.
+sidebar:
+  order: 2
+---
+
+*Estado: diseño — aún no implementado.*
+
+Este es el diagrama de contexto (C4 nivel 1): Kilo como una caja única, quién lo usa y con qué sistemas externos intercambia información. No muestra todavía los contenedores internos — eso está en [Piezas del sistema](/arquitectura/piezas-sistema/).
+
+```mermaid
+---
+title: Contexto del sistema — Kilo (C4 nivel 1)
+---
+flowchart TB
+    persona["<b>[Persona]</b><br/>Encargado de compras<br/><i>Dueño o encargado del restaurante.<br/>Usa la app móvil/web para dictar<br/>cierres, compras y ver recomendaciones.</i>"]
+
+    kilo["<b>[Sistema]</b><br/>Kilo<br/><i>Predice demanda de insumos y<br/>recomienda cuánto comprar,<br/>por restaurante.</i>"]
+
+    scribe["<b>[Sistema externo]</b><br/>ElevenLabs Scribe /<br/>Groq Whisper<br/><i>Transcripción de audio a texto.<br/>Scribe primario, Whisper como<br/>respaldo económico.</i>"]
+
+    claude["<b>[Sistema externo]</b><br/>Anthropic Claude Haiku<br/><i>Extracción de campos estructurados<br/>y resolución de insumos ambiguos.</i>"]
+
+    culqi["<b>[Sistema externo]</b><br/>Culqi<br/><i>Procesador de cobros en Perú.<br/>Integración a definir — pricing<br/>aún no resuelto.</i>"]
+
+    fcm["<b>[Sistema externo]</b><br/>Firebase Cloud<br/>Messaging<br/><i>Notificaciones push:<br/>alertas de vencimiento,<br/>recordatorio de cierre diario.</i>"]
+
+    sisap["<b>[Sistema externo]</b><br/>SISAP / MIDAGRI<br/><i>Fuente del catálogo maestro y<br/>precios de referencia de mercados<br/>mayoristas.</i>"]
+
+    persona -- "Dicta cierres y compras,<br/>revisa recomendaciones<br/>(HTTPS, app móvil/web)" --> kilo
+    kilo -- "Notificaciones de vencimiento<br/>y recordatorios<br/>(HTTPS, push)" --> persona
+
+    kilo -- "Envía audio, recibe transcripción<br/>(HTTPS/REST)" --> scribe
+    kilo -- "Envía transcripción, recibe<br/>campos estructurados<br/>(HTTPS/REST, structured outputs)" --> claude
+    kilo -- "Solicita cobro mensual<br/>(HTTPS/REST) — Badge: por definir" --> culqi
+    kilo -- "Envía notificación<br/>(HTTPS/REST)" --> fcm
+    kilo -- "Importa catálogo y precios<br/>de referencia (batch, no en<br/>tiempo real)" --> sisap
+```
+
+## Los actores
+
+**Encargado de compras** (persona): el único tipo de usuario real de Kilo, como ya establece [Visión general de producto](/producto/vision-general/). Interactúa con Kilo a través de la app móvil/web — dicta por voz, revisa resúmenes editables, ve recomendaciones de compra y recibe notificaciones.
+
+## Las integraciones externas
+
+- **ElevenLabs Scribe / Groq Whisper** — convierten el audio dictado en texto. Scribe es el proveedor primario por su menor tasa de error; Whisper queda como respaldo económico. Detalle completo en [Pipeline de voz](/arquitectura/pipeline-voz/).
+- **Anthropic Claude Haiku** — dos usos distintos: extrae campos estructurados (insumo, cantidad, unidad) de la transcripción, y resuelve insumos ambiguos cuando la búsqueda por similitud de texto no alcanza. Detalle en [Pipeline de voz](/arquitectura/pipeline-voz/#resolución-de-insumos).
+- **Culqi** — procesador de cobros peruano, para la suscripción mensual una vez termine el piloto gratuito. La integración concreta (webhooks, flujo de cobro) todavía no está diseñada porque el modelo de pricing en sí sigue sin cerrar — se mantiene liviano en esta página a propósito.
+- **Firebase Cloud Messaging** — canal de notificaciones push: alertas de vencimiento de lote (Fase 4) y recordatorios de cierre diario si el encargado de compras no ha dictado a cierta hora.
+- **SISAP / MIDAGRI** — la misma fuente que Producto ya eligió para el catálogo de insumos y nombres comerciales reales (ver [Fase 1](/producto/flujo/fase-1-configuracion-inicial/)). Esta página de Arquitectura solo confirma que es una importación batch hacia el catálogo maestro de Kilo, no una consulta en tiempo real durante el uso normal de la app.

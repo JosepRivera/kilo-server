@@ -1,0 +1,26 @@
+---
+title: Riesgos y deuda técnica
+description: Lo que todavía no está validado o resuelto en el diseño de Kilo, con su mitigación o su plan de monitoreo durante el piloto.
+sidebar:
+  order: 10
+---
+
+import { Badge } from '@astrojs/starlight/components';
+
+*Estado: diseño — aún no implementado.*
+
+Lista concreta de lo que este diseño deja abierto a propósito, o que depende de datos que todavía no existen. Cada punto tiene una mitigación o una nota explícita de "monitorear durante el piloto" — nada acá se presenta como resuelto cuando no lo está.
+
+- **Precisión de transcripción de dígitos en español peruano, sin validar.** Los modelos de voz de propósito general tienen debilidades documentadas en secuencias de números que los benchmarks públicos no aíslan para español. <Badge text="Por validar en piloto" variant="caution" /> Mitigación: construir un corpus propio de dictado peruano real y probarlo antes del lanzamiento, no asumir desde tablas de posiciones públicas — ver [Pipeline de voz](/arquitectura/pipeline-voz/#transcripción-elevenlabs-scribe-v2-primario-groq-whisper-como-respaldo).
+
+- **El patrón de rate limiter en memoria no sobrevive a múltiples instancias del servidor.** El sitio de documentación ya usa este patrón en `docs/src/pages/api/ask.ts`; si el API de Kilo reutiliza el mismo patrón, funciona bien a la escala de un solo contenedor del piloto, pero necesita un store compartido (Redis, o un limiter respaldado en Postgres) antes de escalar horizontalmente a más de una instancia.
+
+- **El aplazamiento de Row-Level Security es un riesgo aceptado, no un descuido.** Ver [ADR 0006](/arquitectura/decisiones/0006-aislamiento-multi-restaurante-sin-row-level-security/) para el razonamiento completo. El punto de revisión, repetido acá para que no se pierda: revisitar si el equipo crece más allá de un desarrollador solo, o si una revisión de seguridad pide defensa en profundidad más allá de la capa de claves foráneas compuestas.
+
+- **El diffing de migraciones de Drizzle es más débil que el de Prisma y puede generar DDL destructivo** para algo tan simple como renombrar una columna (interpretarlo como "borrar columna vieja + crear columna nueva" en vez de un rename). Mitigación: cada migración generada se lee antes de aplicarla, nunca se confía a ciegas — ver [ADR 0002](/arquitectura/decisiones/0002-postgres-sin-orm-pesado/).
+
+- **La regla de enrutamiento de insumos intermitentes (umbral de ADI) es una heurística simple, ajustada sobre práctica típica, no sobre datos propios del piloto todavía.** Necesita validación una vez que exista historial real del piloto — ver [Motor de predicción](/arquitectura/motor-prediccion/#insumos-intermitentes-necesitan-un-fallback).
+
+- **El `z` (nivel de servicio) del umbral mínimo de seguridad sigue siendo un dial por afinar durante el piloto**, aunque la forma de la fórmula ya está decidida (ver [Motor de predicción — umbral mínimo](/arquitectura/motor-prediccion/#umbral-mínimo-la-fórmula-real)). <Badge text="Por validar en piloto" variant="caution" />
+
+- **Si el host elegido puede escalar el contenedor del API a cero, el disparador de cron in-process deja de dispararse en silencio.** El job nocturno simplemente no corre esa noche, sin ningún error visible. Mitigación: si el host escala a cero, usar el disparador por endpoint externo descrito en [Despliegue](/arquitectura/despliegue/#disparo-del-job-nocturno) — nunca asumir que el cron in-process es suficiente sin confirmar primero que el contenedor no escala a cero.
