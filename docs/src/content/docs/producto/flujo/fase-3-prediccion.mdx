@@ -7,11 +7,15 @@ sidebar:
 
 import { Aside, Badge, Steps } from '@astrojs/starlight/components';
 
-Cada noche, el sistema recalcula, insumo por insumo, usando **suavizamiento exponencial de Holt-Winters** (un método estadístico de pronóstico que se ajusta solo, sin reglas escritas a mano, a medida que llegan datos nuevos) sobre el historial de consumo. El batch corre **una vez al día, a una hora fija de bajo tráfico** (aprox. 5-6am hora Perú, no a medianoche), para dar tiempo a los restaurantes que cierran tarde a grabar su registro de voz antes de que corra. Un registro que llega después del corte simplemente se recoge en el batch del día siguiente.
+Cada noche, el sistema recalcula la predicción de cada insumo con **suavizamiento exponencial de Holt-Winters**: un método estadístico de pronóstico que se ajusta solo, sin reglas escritas a mano, a medida que llegan datos nuevos.
 
-- **Nivel**: la línea base de consumo diario "normal" actual de ese insumo.
-- **Tendencia**: si el consumo está subiendo o bajando con el tiempo.
-- **Estacionalidad semanal**: el patrón que se repite cada semana, **aprendido automáticamente y sin ninguna configuración posible** a partir del consumo real registrado — por ejemplo, "los viernes siempre se vende más que los martes" aunque el local abra ambos días sin cerrar ninguno.
+De cada insumo estima tres cosas por separado:
+
+- **Nivel**: cuánto se consume "normalmente" ahora mismo.
+- **Tendencia**: si ese consumo viene subiendo o bajando con el tiempo.
+- **Estacionalidad semanal**: el patrón que se repite cada semana, **aprendido solo, sin ninguna configuración posible**, a partir del consumo real registrado — por ejemplo, "los viernes se vende más que los martes" aunque el local abra los dos días.
+
+El proceso corre **una vez al día, a una hora fija de poco tráfico** (aprox. 5-6am hora Perú, no a medianoche), para dar tiempo a los restaurantes que cierran tarde a grabar su registro antes de que arranque. Lo que llega después de esa hora entra al proceso del día siguiente.
 
 Un cierre real (consumo cero, marcado como tal en [Fase 2](/producto/flujo/fase-2-registro-diario/)) entra a Holt-Winters **igual que cualquier otro dato real** — nunca se trata como dato faltante.
 
@@ -31,7 +35,7 @@ Durante los primeros ~28 días, un insumo todavía no tiene suficiente historial
 
 Al no existir ningún otro restaurante del mismo tipo de cocina en la plataforma todavía, no hay patrón agregado disponible (Capa 1). Se usa directamente la **Capa 2**: reparto parejo dentro de la categoría — el mismo mecanismo se aplica **a cada categoría por separado** (verduras, lácteos, abarrotes, etc.), no solo a proteínas; proteínas es solo el ejemplo.
 
-- Gasto declarado en la categoría "proteínas": **S/3000/mes** (dato de la Fase 1, [otros datos declarados](/producto/flujo/fase-1-onboarding/)).
+- Gasto declarado en la categoría "proteínas": **S/3000/mes** (dato de la Fase 1, [otros datos declarados](/producto/flujo/fase-1-configuracion-inicial/)).
 - Insumos declarados en esa categoría: pollo, res, pescado (3 insumos).
 - Estimación inicial por insumo: se reparte el gasto de la categoría entre sus insumos por igual — **S/3000 ÷ 3 insumos = S/1000 cada uno**, convertido a una cantidad diaria estimada según precio unitario de referencia.
 
@@ -49,7 +53,11 @@ Para este momento, ya existen varios restaurantes criollos con historial real en
 - Res: **~30%**.
 - Pescado: **~25%**.
 
-Este patrón se aplica **únicamente** al gasto declarado por "La Cusqueñita" (nunca copia el número real de otro restaurante) y está **segmentado por tipo de cocina** — el patrón de una cevichería nunca se mezcla con el de un restaurante criollo. Un tipo de cocina sin restaurantes previos en la plataforma cae de vuelta al reparto parejo de la Capa 2. Y lo más importante: este dato agregado **nunca sustituye las predicciones reales día a día** de un restaurante que ya tiene datos propios — solo mejora la primera estimación a ciegas.
+Ese patrón agregado tiene tres límites estrictos:
+
+- **Se aplica solo al número propio**: se reparte el gasto que declaró "La Cusqueñita", nunca se copia el monto real de otro restaurante.
+- **Está separado por tipo de cocina**: el patrón de una cevichería nunca se mezcla con el de un restaurante criollo. Si no hay restaurantes previos de ese tipo, se vuelve al reparto parejo de la Capa 2.
+- **Nunca reemplaza datos reales**: no toca las predicciones día a día de un restaurante que ya tiene historial propio — solo mejora la primera estimación a ciegas.
 
 "La Cusqueñita" declara **S/2400/mes** en la categoría proteínas. En vez de repartir parejo (S/800 a cada uno de 3 insumos), Kilo aplica el patrón 45/30/25 **a su propio número declarado**:
 

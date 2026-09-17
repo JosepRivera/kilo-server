@@ -1,19 +1,20 @@
 ---
 title: "Fase 4 — Recomendación de compra"
-description: Cuánto comprar antes de la siguiente visita al mercado, alertas de vencimiento por lote (FIFO) y el ahorro visible mes a mes.
+description: Cuánto comprar antes de la siguiente visita al mercado y alertas de vencimiento por lote (FIFO).
 sidebar:
   order: 4
 ---
 
+import { Badge } from '@astrojs/starlight/components';
 
-Antes de la siguiente visita programada al mercado (usando el **intervalo de compra**, declarado por categoría en la [Fase 1](/producto/flujo/fase-1-onboarding/)), Kilo calcula, por insumo:
+Antes de la siguiente visita programada al mercado (usando el **intervalo de compra**, declarado por categoría en la [Fase 1](/producto/flujo/fase-1-configuracion-inicial/)), Kilo calcula, por insumo:
 
 ```text title="Cantidad a comprar, por insumo"
 cantidad a comprar = demanda predicha + umbral mínimo − stock actual
 ```
 
-- **Demanda predicha**: la proyección de Holt-Winters para los días que faltan hasta la próxima compra de esa categoría (el intervalo de compra se declara por categoría, no como un solo número global — ver [Fase 1](/producto/flujo/fase-1-onboarding/)).
-- **Umbral mínimo**: colchón de seguridad configurado para ese insumo.
+- **Demanda predicha**: la proyección de Holt-Winters para los días que faltan hasta la próxima compra de esa categoría (el intervalo de compra se declara por categoría, no como un solo número global — ver [Fase 1](/producto/flujo/fase-1-configuracion-inicial/)).
+- **Umbral mínimo**: colchón de seguridad calculado automáticamente como un **porcentaje de la demanda predicha** de ese insumo <Badge text="Por validar en piloto" variant="caution" /> — no lo declara el dueño insumo por insumo, para no repetir la misma fricción manual que ya se evitó en el resto del catálogo (ver [Fase 1](/producto/flujo/fase-1-configuracion-inicial/)).
 - **Stock actual**: el último dato de stock remanente registrado.
 
 ## Alertas de vencimiento por lote (FIFO)
@@ -28,19 +29,3 @@ Cada compra registrada al volver del mercado queda como un **lote** — fecha, c
 Una alerta consciente de lotes dice: *"El lote de pollo del lunes vence mañana"* — en vez de una advertencia genérica a nivel de insumo que no distingue cuál lote es el urgente.
 
 ![Lista de compra del día: insumo por insumo cuánto comprar, con una alerta destacada de un lote de pollo que vence mañana](../../../../assets/purchase-list-alerts.png)
-
-## Ahorro visible
-
-Kilo muestra una **comparación mes contra el mes anterior** del valor de insumo vencido, para el mismo restaurante — nunca contra una línea base hipotética de "si no usaras la app". Ejemplo, a medida que las predicciones maduran con el arranque en frío:
-
-- **Mes 1** (predicciones sin refinar, arranque en frío reciente): **S/380** perdidos en insumo vencido.
-- **Mes 3**: **S/250** perdidos.
-- **Mes 4** (predicciones ya refinadas con datos reales acumulados): **S/200** perdidos.
-
-Esto se muestra al encargado de compras comparando contra el mes inmediatamente anterior:
-
-> "Este mes perdiste S/200, S/50 menos que el mes pasado."
-
-De mes 1 a mes 4, S/380 → S/200 es una reducción de ~47% — un ejemplo deliberadamente conservador, no el mejor caso posible. Las cifras reales del piloto lo van a reemplazar.
-
-El "ahorro" mostrado es el **costo de compra de los insumos que ya no se desperdician**, no utilidad ni ingreso.
