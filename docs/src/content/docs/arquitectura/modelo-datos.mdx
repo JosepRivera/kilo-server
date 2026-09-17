@@ -1,0 +1,231 @@
+---
+title: Modelo de datos
+description: El esquema completo de Kilo por subsistema, con el razonamiento detrás de cada decisión no obvia — consumo, FIFO, aislamiento multi-restaurante y predicciones.
+sidebar:
+  order: 5
+---
+
+import { Aside, Badge } from '@astrojs/starlight/components';
+
+*Estado: diseño — aún no implementado.*
+
+Esta es la página de más peso técnico de la sección: el esquema completo, organizado por subsistema, con el porqué de cada decisión que no es obvia a primera vista. Los bloques de código son DDL-ish — ilustran la forma y las columnas que importan, no una migración lista para copiar y pegar.
+
+## ORM: Drizzle
+
+**Drizzle ORM + drizzle-kit** (migraciones) **+ drizzle-typebox** (genera los esquemas de TypeBox que Elysia necesita directamente desde las definiciones de tabla). Una sola fuente de verdad para el esquema — la tabla de Drizzle — sin capa de adaptador entre la base de datos y la validación del API. Esto es lo que hace que Drizzle gane sobre Prisma o Kysely para este stack específico: ninguno de los dos genera TypeBox nativamente, así que cualquiera de los dos obligaría a mantener el esquema de validación a mano, por separado del esquema de base de datos (ver [ADR 0002](/arquitectura/decisiones/0002-postgres-sin-orm-pesado/)).
+
+<Aside type="caution">
+Fijar Drizzle en la línea **0.45.x**, no en los release candidates de la 1.0 — la integración con TypeBox (`drizzle-typebox`) todavía no está al día con Drizzle 1.0 al momento de escribir esto.
+</Aside>
+
+## Catálogo
+
+El catálogo maestro es compartido entre restaurantes (no tiene `restaurant_id`); cada restaurante mantiene su propia lista de insumos activos, resueltos contra ese maestro.
+
+```text title="catalog_ingredients — catálogo maestro, compartido"
+catalog_ingredients
+  id                  uuid primary key
+  canonical_name      text not null          -- "Limón sutil", sin lista de alias aparte
+  category            text not null           -- proteínas, verduras y frutas, ...
+  default_unit        text not null           -- g | ml | unit — unidad base, no la que dicta el usuario
+  shelf_life_days     integer                 -- default de vida útil, ver "Catálogo maestro" abajo
+  reference_price     numeric(10,2)           -- de SISAP/MIDAGRI, precio de referencia por unidad base
+  source               text not null           -- 'usda_foodkeeper' | 'curado_peru' | 'sisap'
+```
+
+```text title="ingredients — insumos activos por restaurante"
+ingredients
+  id                  uuid primary key
+  restaurant_id       uuid not null references restaurants(id)
+  catalog_ingredient_id uuid references catalog_ingredients(id)  -- null si es un insumo creado a mano
+  display_name        text not null
+  unit                text not null            -- unidad propia de ESTE insumo para ESTE restaurante
+  criticality         text not null            -- 'critico' | 'secundario'
+  shelf_life_days_override integer             -- sobreescribe el default del catálogo maestro
+  unique (restaurant_id, id)                    -- ver "Aislamiento entre restaurantes" abajo
+```
+
+### Catálogo maestro: de dónde sale cada dato
+
+- **Nombres y estructura de categorías**: SISAP de MIDAGRI, ya elegido por Producto en [Fase 1](/producto/flujo/fase-1-configuracion-inicial/) — nombres comerciales reales, no una tabla nutricional.
+- **Vida útil por defecto (`shelf_life_days`)**: esqueleto tomado de **USDA FoodKeeper**, que tiene una exportación oficial en JSON en español, complementado con un set curado a mano de **~100-150 insumos específicamente peruanos** (ají amarillo, rocoto, camote, culantro, choclo, etc. — nada que un dataset de EE.UU. cubra) construido junto a un chef o experto del rubro.
+- **Precio de referencia**: SISAP/MIDAGRI, la misma fuente que ya usa Producto para nombres — acá se reutiliza también para precio de referencia.
+
+Todo esto son **defaults**, nunca un valor fijo: cada insumo tiene su vida útil sobreescribible por restaurante (`shelf_life_days_override`), porque la confiabilidad de la cadena de frío varía de un local a otro.
+
+## Configuración por restaurante
+
+```text title="restaurants"
+restaurants
+  id                  uuid primary key
+  name                text not null
+  cuisine_type        text not null            -- usado para agrupar en la Capa 1 agregada
+  monthly_spend_by_category jsonb              -- gasto declarado por categoría, Fase 1
+  purchase_interval_by_category jsonb          -- días entre compras, por categoría, Fase 1
+  business_day_cutoff_hour integer default 5   -- hora de corte del "día de negocio", ~5-6am
+```
+
+```text title="recurring_closures — reglas de cierre recurrente"
+recurring_closures
+  id                  uuid primary key
+  restaurant_id       uuid not null references restaurants(id)
+  day_of_week         integer not null          -- 0-6
+  active              boolean default true
+```
+
+## Registro diario
+
+Este es el subsistema con más decisiones no obvias. Dos tablas separadas — el dato crudo dictado y el consumo derivado — con una tercera solo para la resolución de unidades informales.
+
+```text title="stock_readings — lo que se dictó, tal cual"
+stock_readings
+  id                  uuid primary key
+  restaurant_id       uuid not null
+  ingredient_id       uuid not null
+  recorded_at         timestamptz not null     -- momento real del registro
+  business_date       date not null            -- ver "business_date vs recorded_at" abajo
+  quantity            numeric(10,3) not null    -- en la unidad propia del insumo
+  source              text not null default 'voice'
+  foreign key (restaurant_id, ingredient_id) references ingredients (restaurant_id, id)
+```
+
+```text title="daily_consumption — consumo derivado, materializado de noche"
+daily_consumption
+  id                  uuid primary key
+  restaurant_id       uuid not null
+  ingredient_id       uuid not null
+  business_date       date not null
+  quantity            numeric(10,3) not null    -- puede ser 0 (cierre confirmado)
+  type                text not null              -- 'real' | 'estimado'
+  source              text not null              -- ver "source, nunca null" abajo
+  unique (restaurant_id, ingredient_id, business_date)
+  foreign key (restaurant_id, ingredient_id) references ingredients (restaurant_id, id)
+```
+
+### La fórmula de consumo (con la sutileza corregida)
+
+```text title="Fórmula de consumo"
+consumo = stock_anterior + compras_en_la_ventana − stock_actual
+```
+
+**No** `stock_ayer − stock_hoy` a secas — esa versión más simple ignora las compras hechas dentro de la misma ventana. Un restaurante que compra y consume el mismo día registraría consumo negativo o casi cero con la fórmula simple, envenenando la predicción justo el día de mayor actividad real. Sumar las compras registradas en la ventana (ver [Lotes y compras](#lotes-y-compras) abajo) corrige esto sin necesitar ningún caso especial.
+
+### `source`: nunca null
+
+Cada fila de `daily_consumption` tiene un `source` (`'voice'`, `'closure'`, `'gap_fill'`, etc.), nunca null. La ausencia de una fila significa "todavía no registrado" — no cero, no desconocido con valor cero. Un cierre confirmado con cantidad cero (el local no abrió, ver [Fase 2](/producto/flujo/fase-2-registro-diario/#manejo-de-huecos-gaps)) **es una fila presente**, `quantity = 0`, `source = 'closure'` — y eso **sí es dato real**, distinto de un hueco sin llenar.
+
+### Por qué el consumo se materializa de noche, no se calcula al leer
+
+`daily_consumption` no es una columna generada ni una vista calculada al vuelo — se escribe explícitamente en el batch nocturno. La razón: la lógica de reparto de huecos (repartir la diferencia pareja entre los días de un hueco, ver [Fase 2](/producto/flujo/fase-2-registro-diario/#manejo-de-huecos-gaps)) y el control de anomalías no caben en una columna `GENERATED ALWAYS AS` de Postgres — son reglas con estado (dependen de vecinos en el tiempo), no una expresión pura de la fila.
+
+### `business_date` vs `recorded_at`: por qué son columnas separadas
+
+`recorded_at` es el timestamp real del registro. `business_date` es el "día de negocio" al que se atribuye ese registro — el mismo corte ~5-6am que ya usa el batch nocturno (ver [Fase 3, y la pregunta frecuente correspondiente](/producto/preguntas-frecuentes/#a-qué-día-cuenta-un-registro-hecho-a-la-1am)). `business_date` se calcula **al momento de escribir la fila**, en código de aplicación — no como columna generada, porque la aritmética de fechas con zona horaria no es `IMMUTABLE` en Postgres (un requisito de `GENERATED ALWAYS AS`).
+
+## Lotes y compras
+
+Patrón de ledger/cost-layer — estándar en sistemas de inventario, y necesario acá específicamente para poder nombrar **qué lote concreto** está en riesgo en una alerta, no solo que "algo" de ese insumo vence pronto.
+
+```text title="lots — cada compra es su propio lote"
+lots
+  id                  uuid primary key
+  restaurant_id       uuid not null
+  ingredient_id       uuid not null
+  purchased_at        date not null
+  quantity            numeric(10,3) not null
+  unit_cost           numeric(10,2) not null    -- numeric, nunca float — ver abajo
+  expires_at          date not null              -- pre-llenado desde shelf_life, editable
+  foreign key (restaurant_id, ingredient_id) references ingredients (restaurant_id, id)
+```
+
+```text title="lot_movements — ledger de movimientos, append-only"
+lot_movements
+  id                  uuid primary key
+  lot_id              uuid not null references lots(id)
+  movement_type       text not null              -- 'purchase' | 'consumption' | 'expired'
+  quantity            numeric(10,3) not null
+  occurred_at         timestamptz not null
+```
+
+`lots` nunca se actualiza en el lugar para restar lo consumido — cada consumo (asumiendo FIFO, ver [Fase 4](/producto/flujo/fase-4-recomendador/)) se escribe como una fila nueva en `lot_movements`. Esto conserva el historial completo de cada lote y es lo que permite responder "¿qué lote específico está por vencer?" en vez de solo un total agregado.
+
+### `numeric`, nunca `float`; unidad base por insumo
+
+Todo lo que es dinero es `numeric`, nunca `float` — errores de redondeo de punto flotante en costos acumulados son inaceptables en un sistema que mide ahorro real en soles. Las cantidades se guardan en **una unidad base por insumo** (g, ml o unidad — la que declaró el insumo en `ingredients.unit`), con una tabla de conversión aparte para lo que la gente dice de verdad ("un atado de culantro", "media jaba"):
+
+```text title="unit_conversions — frase informal → unidad base, por insumo"
+unit_conversions
+  id                  uuid primary key
+  restaurant_id       uuid not null
+  ingredient_id       uuid not null
+  phrase              text not null              -- "medio balde", tal cual se dijo
+  base_quantity       numeric(10,3) not null      -- equivalencia en la unidad base de ESE insumo
+  unique (restaurant_id, ingredient_id, phrase)
+```
+
+No existe una tabla de conversión global ni una lista de alias — cada equivalencia se aprende una vez por combinación insumo+frase, por diseño de producto (ver [Fase 1](/producto/flujo/fase-1-configuracion-inicial/#unidad-de-medida-y-conversiones)).
+
+## Predicciones
+
+```text title="forecasts — append-only, nunca se sobreescribe"
+forecasts
+  id                  uuid primary key
+  restaurant_id       uuid not null
+  ingredient_id       uuid not null
+  origin_date         date not null              -- noche en que se calculó
+  target_date         date not null              -- día que predice
+  predicted_quantity  numeric(10,3) not null
+  method              text not null               -- 'holt_winters' | 'weekday_average' (fallback intermitente)
+  real_days_of_history integer not null           -- cuántos días reales existían al predecir
+  model_error_estimate numeric(10,3)              -- error histórico del modelo para este insumo
+  created_at          timestamptz not null default now()
+  unique (restaurant_id, ingredient_id, origin_date, target_date)
+```
+
+**Nunca se hace `UPDATE` sobre una fila existente, nunca se sobreescribe una predicción vieja.** Cada corrida del batch inserta filas nuevas, con la clave `(origin_date, target_date)` distinguiendo cuándo se hizo la predicción de qué día predice. La razón es medible: sobreescribir destruiría la evidencia necesaria para comparar, después del hecho, la predicción contra lo que realmente pasó — que es exactamente lo que el piloto necesita para responder "¿mejora la precisión con más historial real?" (ver [Motor de predicción](/arquitectura/motor-prediccion/#medición-de-precisión)).
+
+## Capa 1 agregada
+
+```text title="cuisine_ingredient_shares — patrón agregado y anonimizado por tipo de cocina"
+cuisine_ingredient_shares
+  id                  uuid primary key
+  cuisine_type        text not null
+  category            text not null
+  ingredient_catalog_id uuid not null references catalog_ingredients(id)
+  share                numeric(5,4) not null      -- ej. 0.45 = 45% del gasto de la categoría
+  computed_from_restaurant_count integer not null -- para auditar el piso de k-anonimato
+  computed_at         timestamptz not null
+```
+
+Esta tabla solo se recalcula cuando hay **al menos 5 restaurantes** del mismo tipo de cocina con historial real — el piso de k-anonimato concreto detrás del "varios restaurantes" que Producto menciona en [Fase 3](/producto/flujo/fase-3-prediccion/). Nunca guarda datos por restaurante individual, solo el porcentaje agregado.
+
+## Aislamiento entre restaurantes
+
+Tablas compartidas con `restaurant_id`, y **claves foráneas compuestas** — `(restaurant_id, ingredient_id) → ingredients(restaurant_id, id)`, como ya se ve en `stock_readings`, `daily_consumption` y `lots` arriba — como mecanismo obligatorio de aislamiento. Esto hace **estructuralmente imposible**, a nivel de FK, que una fila de un restaurante apunte a un insumo de otro: no depende de que cada query recuerde filtrar por `restaurant_id`, lo impone el esquema.
+
+<Aside type="caution" title="Row-Level Security: postergado para v1, no descartado">
+Postgres Row-Level Security **no se adopta en v1** — es una decisión postergada, no rechazada (ver [ADR 0006](/arquitectura/decisiones/0006-aislamiento-multi-restaurante-sin-row-level-security/)). Dos razones concretas para postergarla con un equipo solo:
+
+- Un rol `BYPASSRLS` es necesario para el batch nocturno de agregación cross-tenant de la Capa 1 — y ese rol se convierte otra vez en toda la superficie de ataque que RLS existe para evitar.
+- Las variables de sesión (`SET LOCAL`) que RLS típicamente usa para identificar al tenant actual **se filtran entre conexiones pooled** si se setean fuera de una transacción — un footgun real para un desarrollador solo, sin equipo de seguridad revisando cada cambio.
+
+El punto de revisión: si el equipo crece más allá de un desarrollador solo, o una revisión de seguridad pide defensa en profundidad más allá de la capa de FK.
+</Aside>
+
+## Índices que importan
+
+Solo los que de verdad se usan, no una lista aspiracional:
+
+```text title="Índices"
+-- Últimas N lecturas de un insumo, para la mediana de 14 días del control de anomalías
+create index on stock_readings (restaurant_id, ingredient_id, recorded_at desc);
+
+-- Lotes abiertos por fecha de vencimiento, para las alertas FIFO
+create index on lots (restaurant_id, ingredient_id, expires_at) where quantity_remaining > 0;
+
+-- Última predicción por insumo
+create index on forecasts (restaurant_id, ingredient_id, origin_date desc);
+```
+
+Sin TimescaleDB, sin extensiones de series de tiempo — Postgres plano alcanza de sobra a esta escala. El número que respalda esto: **~2.2 millones de filas de consumo al año a 100 restaurantes × 60 insumos** (ver [Estrategia técnica](/arquitectura/estrategia-tecnica/#por-qué-postgres-solo-sin-cola-de-mensajes-ni-base-analítica-separada)) — no es una afirmación sin evidencia, es una cuenta concreta muy por debajo de donde esas extensiones empiezan a pagar su complejidad.
