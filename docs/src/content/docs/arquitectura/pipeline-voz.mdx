@@ -1,0 +1,67 @@
+---
+title: Pipeline de voz
+description: Las dos etapas del pipeline de voz, la resolución de insumos con trigramas y LLM de respaldo, manejo de audio, y el modelo de costo real por restaurante.
+sidebar:
+  order: 7
+---
+
+import { Aside, Badge } from '@astrojs/starlight/components';
+
+*Estado: diseño — aún no implementado.*
+
+## Dos etapas: transcripción, después extracción
+
+Audio → transcripción → extracción de campos estructurados, no un modelo audio-nativo de un solo paso. Tres razones concretas:
+
+- Un transcript guardado y reproducible es esencial para depurar ("¿por qué entendió 3 kilos?") — un modelo audio-nativo de punta a punta no deja ese rastro intermedio.
+- Permite cambiar de proveedor de ASR o de extracción de forma independiente, sin acoplar las dos decisiones.
+- Es bastante más barato que la alternativa audio-nativa a este volumen (ver [modelo de costo](#modelo-de-costo) abajo).
+
+Esto es un tradeoff considerado, no gratis: un modelo audio-nativo único podría algún día rendir mejor preservando señales de duda o auto-corrección que un transcript de texto descarta ("tres... no, cuatro kilos"). Vale un bake-off futuro, no bloquea v1.
+
+## Transcripción: ElevenLabs Scribe v2 primario, Groq Whisper como respaldo
+
+**ElevenLabs Scribe v2 es el proveedor primario**; **Groq Whisper Large v3 Turbo** queda como respaldo económico — esto es una mejora sobre la intención original del `.env.example` del proyecto, no un reemplazo. Scribe reduce aproximadamente a la mitad la tasa de error frente a Whisper, por una diferencia de costo de centavos por restaurante al mes a este volumen (ver la aritmética real abajo), y soporta *keyterm/vocabulary biasing* hacia los nombres canónicos del catálogo — algo que el campo `prompt` de Whisper no logra hacer bien (tope de 224 tokens, sesgo suave, no fue diseñado como lista de palabras clave).
+
+<Aside type="danger" title="El riesgo real más grande de este producto">
+Todo el contenido de un registro de voz son **números**. Los modelos de voz de propósito general tienen una debilidad documentada en secuencias de dígitos ("dieciséis" → "sesenta" y errores similares) que los benchmarks públicos no aíslan para español. Esto tiene que resolverse con un **corpus propio de Kilo** de dictado peruano real antes del lanzamiento, no asumirse desde tablas de posiciones públicas.
+
+Por esta incertidumbre, **el resumen editable antes de guardar no es un detalle de UX — es la capa real de corrección de errores del producto**, y debería diseñarse en función de eso: cada número como un campo grande, editable con un solo toque, no texto chico.
+</Aside>
+
+## Manejo de vocabulario
+
+*Keyterm/vocabulary biasing* hacia los nombres canónicos del catálogo SISAP al momento de transcribir, **más matching difuso obligatorio río abajo** — esta segunda parte es la que de verdad carga el peso, no el biasing. El dueño va a decir el nombre de mercado ("culantro"), no necesariamente el nombre canónico del catálogo, y el biasing solo no cierra esa brecha.
+
+## Resolución de insumos
+
+Producto ya define los tres resultados posibles — exacto, ambiguo con selector, o crear nuevo (ver [Fase 1](/producto/flujo/fase-1-configuracion-inicial/)). La implementación:
+
+1. **Primera pasada, barata**: similitud de trigramas con `pg_trgm` (más `unaccent` para acentos) sobre el catálogo — solo cientos de filas, sub-milisegundo, sin necesitar infraestructura de vectores.
+2. **Respaldo con LLM**: cuando la similitud de trigramas vuelve ambigua o vacía, se le pide a Claude Haiku que elija entre el conjunto de candidatos (o el catálogo completo, que cabe fácil en su ventana de contexto y es cacheable).
+
+Trigramas solos no alcanzan porque son ciegos a sinónimos reales sin substring compartido ("pota" vs. "calamar"), y el catálogo explícitamente no tiene lista de alias por diseño de producto — ese hueco lo tiene que cubrir algo, y el respaldo de LLM es lo que lo cubre.
+
+## Extracción estructurada
+
+Claude Haiku vía **salidas estructuradas/restringidas contra un JSON schema**, no prompting de modo JSON libre — garantiza salida válida contra el esquema. Diseño explícito de modo de falla, porque esto le importa a la confianza en un producto de inventario: **nunca forzar silenciosamente** algo que el esquema no puede representar (una unidad mixta, algo poco claro); en vez de eso, mostrarlo tal cual en el resumen editable como "no entendí esto — ¿lo agregas a mano?", para que nada se descarte o se adivine en silencio.
+
+## Manejo de audio
+
+- **Grabado en segmentos cortos** — así una dictado interrumpido (entra una llamada, se cierra la app) solo pierde el segmento actual, no la grabación completa.
+- **Persistido a SQLite local** a medida que cada segmento se completa — este es el mecanismo real detrás del "retoma donde quedó" que ya describe el [FAQ de Producto](/producto/preguntas-frecuentes/#qué-pasa-si-la-grabación-del-cierre-se-interrumpe-a-la-mitad).
+- **Subido entero, comprimido** — no en streaming. Esto es dictar-y-revisar, no una conversación en vivo, así que streaming compraría latencia que el producto no necesita, a cambio de exactamente la fragilidad que se rompe con datos móviles peruanos.
+- **Mono, ~16kHz, ~32kbps AAC** — suficiente para voz, y barato: un dictado de 45 segundos son aproximadamente **180KB**; a ~S/1/GB de datos prepago, dos dictados al día cuestan aproximadamente **un céntimo al mes** — el costo de datos no es un problema real.
+
+**Transcripción en el dispositivo** (whisper.cpp, APIs nativas del sistema operativo): **rechazada explícitamente para v1**. Los modelos pequeños en dispositivo son notablemente peores justo en lo que más importa acá (números), y la calidad del reconocimiento nativo del sistema operativo varía demasiado entre los teléfonos Android de gama baja que este segmento realmente usa. Queda como palanca futura documentada y deliberada si el costo de datos o el uso offline se vuelven una restricción real — no una idea descartada.
+
+## Modelo de costo
+
+Aritmética real, no una estimación vaga:
+
+- ~45 segundos × 2 dictados/día por restaurante ≈ **~45 minutos de audio al mes**, ~60 llamadas de extracción al mes.
+- Transcripción: **~US$0.03-0.17/restaurante/mes**, según el tier de proveedor.
+- Extracción: **~US$0.27/restaurante/mes**.
+- **Total: aproximadamente US$0.30-0.45 por restaurante al mes.**
+
+Conclusión directa: el costo de inferencia no es una restricción real sobre cómo debería fijarse el precio de Kilo — debería fijarse por el valor que entrega, no defenderse contra un costo marginal de una fracción de centavo de dólar por registro de voz (relevante para la definición de pricing, todavía sin resolver en los documentos de negocio internos del proyecto).

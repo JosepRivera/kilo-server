@@ -1,0 +1,100 @@
+---
+title: Flujos en ejecución
+description: Tres diagramas de secuencia a nivel de mensaje — el cierre diario, el batch nocturno y el registro de compra.
+sidebar:
+  order: 8
+---
+
+*Estado: diseño — aún no implementado.*
+
+Producto ya cuenta la historia de las 5 fases del ciclo desde la perspectiva del dueño del restaurante (ver [Flujo operativo](/producto/flujo/)). Esta página no repite esa narrativa — agrega la capa técnica debajo: qué mensaje concreto viaja entre qué contenedor, en tres escenarios.
+
+## 1. Cierre diario por voz (Fase 2), de punta a punta
+
+```mermaid
+---
+title: Cierre diario por voz — de la grabación al daily_consumption
+---
+sequenceDiagram
+    actor Persona as Encargado de compras
+    participant App as App móvil (Expo)
+    participant API as API (Bun/Elysia)
+    participant Scribe as ElevenLabs Scribe
+    participant Claude as Claude Haiku
+    participant DB as Postgres
+
+    Persona->>App: Graba audio del cierre (segmentos)
+    App->>App: Persiste segmentos en SQLite local
+    App->>API: POST /registros/audio (HTTPS, audio comprimido completo)
+    API->>Scribe: Envía audio (HTTPS/REST)
+    Scribe-->>API: Transcripción de texto
+    API->>Claude: Envía transcripción (HTTPS/REST, structured outputs)
+    Claude-->>API: Campos extraídos {insumo, cantidad, unidad}
+    API->>DB: Busca insumo por trigramas (pg_trgm + unaccent)
+    alt coincidencia ambigua o vacía
+        API->>Claude: Pide resolución entre candidatos (HTTPS/REST)
+        Claude-->>API: Insumo resuelto (o "crear nuevo")
+    end
+    API->>DB: INSERT stock_readings (business_date calculado)
+    API-->>App: Resumen editable {insumo, cantidad, flags de revisión}
+    Persona->>App: Revisa y confirma (o corrige campos numéricos)
+    App->>API: POST /registros/confirmar
+    API->>DB: Control de anomalías (mediana 14 días por insumo+día de semana)
+    API->>DB: UPSERT daily_consumption (source='voice' o 'closure')
+```
+
+## 2. Batch nocturno — de cron a `forecasts`
+
+```mermaid
+---
+title: Batch nocturno — recompute de predicciones, un restaurante a la vez
+---
+sequenceDiagram
+    participant Cron as Disparador (cron in-process o endpoint externo)
+    participant API as API/Job nocturno (mismo binario Bun)
+    participant DB as Postgres
+
+    Cron->>API: POST /internal/jobs/recompute (header de secreto compartido)
+    API->>DB: INSERT job_runs (fecha, restricción única) — no-op si ya corrió hoy
+    loop por cada restaurante activo
+        API->>DB: SELECT historial de daily_consumption del restaurante
+        alt insumo intermitente (ADI ≥ ~9-10 días)
+            API->>API: Fallback — promedio de 4 semanas por día de semana
+        else insumo con historial suficiente
+            API->>API: Ajuste Holt-Winters (nivel, estacionalidad; tendencia β=0)
+        end
+        API->>DB: UPSERT forecasts (origin_date, target_date, método, error estimado)
+        Note over API: Un error en un insumo/restaurante no detiene<br/>el resto — try/catch por serie, fallback a<br/>última predicción buena conocida
+    end
+    API->>DB: UPDATE job_runs (marca corrida completa)
+```
+
+## 3. Registro de compra (Fase 5) — de la voz al lote
+
+```mermaid
+---
+title: Registro de compra — de la voz a lots y lot_movements
+---
+sequenceDiagram
+    actor Persona as Encargado de compras
+    participant App as App móvil (Expo)
+    participant API as API (Bun/Elysia)
+    participant Scribe as Scribe/Whisper
+    participant Claude as Claude Haiku
+    participant DB as Postgres
+
+    Persona->>App: Graba audio de la compra (insumo, cantidad, costo)
+    App->>API: POST /compras/audio (audio comprimido)
+    API->>Scribe: Transcribe audio
+    Scribe-->>API: Transcripción
+    API->>Claude: Extrae campos {insumo, cantidad, costo}
+    Claude-->>API: Campos estructurados
+    API->>DB: Resuelve insumo (trigramas, o LLM si es nuevo)
+    API->>DB: Vida útil por defecto (catalog_ingredients.shelf_life_days u override)
+    API-->>App: Resumen editable — lote propuesto con fecha de vencimiento pre-llenada
+    Persona->>App: Confirma o corrige (cantidad, costo, vencimiento)
+    App->>API: POST /compras/confirmar
+    API->>DB: Control de precio (mediana de compras anteriores del insumo)
+    API->>DB: INSERT lots (fecha, cantidad, costo, vencimiento)
+    API->>DB: INSERT lot_movements (movement_type='purchase')
+```

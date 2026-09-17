@@ -1,0 +1,84 @@
+---
+title: Motor de predicción
+description: Holt-Winters en detalle técnico — por qué corre en proceso, estacionalidad aditiva, el fallback para insumos intermitentes, y la fórmula real del umbral mínimo.
+sidebar:
+  order: 6
+---
+
+import { Aside, Badge } from '@astrojs/starlight/components';
+
+*Estado: diseño — aún no implementado.*
+
+Esta página es la versión técnica precisa del motor de predicción que [Fase 3 de Producto](/producto/flujo/fase-3-prediccion/) describe para un lector no técnico. No la contradice — la refina, y en dos puntos concretos (marcados abajo) corrige cómo se imagina el mecanismo desde una lectura literal de esa página.
+
+## Corre en proceso, en TypeScript — no un servicio separado en Python
+
+Holt-Winters aditivo (nivel + tendencia + estacionalidad semanal) es **~200-300 líneas de código**, sin partes numéricamente delicadas — no hay inversión de matrices, no hay optimizador de máxima verosimilitud. Levantar un segundo runtime en Python para esto costaría un contenedor más, un pipeline de deploy más y una superficie de guardia más, para ahorrarse escribir unas 200 líneas.
+
+**El riesgo real que esto crea**: una implementación propia puede tener bugs sutiles que una librería madura como `statsmodels` ya resolvió. La mitigación: validar la implementación de Kilo contra `statsmodels` **una vez, offline**, sobre series sintéticas con verdad conocida y sobre ~50 series reales del piloto, exigiendo acuerdo numérico — un script de validación de una sola vez, no una dependencia corriendo en producción.
+
+## Estacionalidad aditiva, no multiplicativa
+
+Multiplicativa divide por el nivel y por los índices estacionales — y los cierres reales de un restaurante producen ceros genuinos que causarían división por cero o valores absurdos. Un domingo cerrado es un **cero estructural**, no "20% de un domingo normal". Aditiva evita el problema por construcción.
+
+## Tendencia: desactivada en v1 (β=0), o fuertemente amortiguada si se mantiene
+
+Una tendencia ajustada sobre 28 días ruidosos extrapola hacia números sin sentido — no hay suficiente señal de tendencia recuperable en tan pocos datos. Esto es un refinamiento sobre la descripción de Fase 3 de Producto, que hoy no distingue explícitamente este punto.
+
+## El arranque en frío: el refinamiento más importante de esta página
+
+<Aside type="caution" title="Refinamiento técnico sobre Fase 3 de Producto — pendiente de reflejar ahí">
+[Fase 3 de Producto](/producto/flujo/fase-3-prediccion/) dice que la estimación de Capa 2 (reparto por categoría) entra al modelo "como estimación inicial" y que Capa 3 "reemplaza un día" de esa estimación por vez. Leído literalmente, esto sugiere que hay puntos de dato falsos sentados dentro de la serie histórica, siendo reemplazados uno por uno.
+
+**La implementación técnicamente correcta es distinta, y mejor**: la estimación de Capa 1/Capa 2 siembra el **estado inicial** del modelo (nivel inicial y estacionalidad inicial) — una creencia de partida — y Holt-Winters corre desde el día 1 **solo sobre los días reales registrados**, alejándose de esa creencia de partida exactamente como α y γ ya están diseñados para hacer.
+
+Esto produce el **mismo comportamiento visible** que describe Producto — la predicción mejora a medida que se acumulan días reales — pero sin el defecto real de la lectura literal: si la estimación plana de categoría se alimentara como puntos de dato repetidos de verdad, le enseñaría al modelo "no existe patrón semanal" y "no existe varianza", diluyendo la señal real de estacionalidad semanal durante semanas y corrompiendo la estimación de varianza de la que depende el umbral mínimo (ver [más abajo](#umbral-mínimo-la-fórmula-real)).
+
+Vale la pena reflejar esto en la redacción de Fase 3 de Producto en algún momento — el texto actual ("reemplaza un día de esa estimación") se lee como sustitución literal de datos, cuando la versión precisa es "reemplaza la creencia inicial, y el modelo corre solo sobre datos reales desde el día 1". Esta página no edita Producto — solo lo señala.
+</Aside>
+
+## Insumos intermitentes: necesitan un fallback
+
+Insumos de bajo volumen que se compran 2-3 veces por semana (no a diario) hacen que Holt-Winters reparta la demanda de forma pareja entre los 7 días de la semana, causando sobra o falta real — exactamente la falla que el producto existe para evitar.
+
+**Regla de v1**: calcular el promedio de días entre registros no-cero (ADI, *average demand interval*) por insumo. Cuando el ADI es alto (aproximadamente **≥ 9-10 días** entre compras reales, es decir claramente no-diario), ese insumo se enruta a un **promedio de 4 semanas específico por día de la semana**, en vez de Holt-Winters completo — esto preserva naturalmente un patrón como "solo se compra martes y viernes", que el suavizado exponencial borraría.
+
+Esta es una regla simple, con alcance de v1 — no el método de Croston completo, que es una opción válida pero más pesada para v2 si la regla simple resulta insuficiente en el piloto.
+
+## Arranque en frío: 28 días es el piso honesto, no un objetivo de confianza
+
+28 días (4 ciclos semanales) es el mínimo para que el método se pueda inicializar, no un punto donde ya es confiable — esto ya lo dice el [FAQ de Producto](/producto/preguntas-frecuentes/#por-qué-el-arranque-en-frío-dura-exactamente-28-días).
+
+El número que esta página agrega: con **~11 parámetros libres** (nivel, tendencia si se mantiene, 6 índices estacionales independientes, más 2-3 parámetros de suavizamiento) estimados de solo 28 puntos, cada índice de día de la semana se construye con apenas **4 observaciones**. Por eso el patrón agregado de Capa 1 vale más que una conveniencia de arranque en frío — también debería **estabilizar/reducir la varianza de los índices estacionales mismos** durante las primeras semanas, no solo sembrar el reparto inicial.
+
+## Umbral mínimo: la fórmula real
+
+<Aside type="caution" title="Refinamiento técnico sobre Fase 4 de Producto — pendiente de reflejar ahí">
+[Fase 4 de Producto](/producto/flujo/fase-4-recomendador/) describe el umbral mínimo como "un porcentaje de la demanda predicha, por validar en piloto". Un porcentaje plano tiene el problema al revés: el colchón de seguridad debería escalar con **qué tan impredecible es ese insumo específico** (su error de pronóstico, en kg), no con **cuánto se usa**. Un insumo de alto volumen y muy predecible, como el arroz, necesita un colchón chico; uno de bajo volumen y errático, como el culantro, necesita uno relativamente más grande frente a su propio tamaño — y un porcentaje plano lo tiene invertido.
+
+La forma de la fórmula ya está decidida por esta página; lo único que el piloto debería seguir validando es el valor exacto de `z` (nivel de servicio) — vale la pena reflejar eso en el badge de Fase 4, que hoy marca la fórmula entera como pendiente cuando en realidad solo `z` lo está.
+</Aside>
+
+```text title="Fórmula del umbral mínimo"
+umbral = z × error_típico_de_pronóstico × √(días_hasta_la_próxima_compra)
+```
+
+- **`error_típico_de_pronóstico`**: el error histórico del propio motor de predicción para ese insumo, en kg — algo que el motor ya tiene que calcular para saber qué tan bien le está yendo (ver `model_error_estimate` en [Modelo de datos](/arquitectura/modelo-datos/#predicciones)).
+- **`z`**: un dial de qué tan seguido el dueño está dispuesto a arriesgarse a quedarse sin stock — aproximadamente `z≈1.65` para quedarse sin stock ~1 de cada 20 veces, `z≈1.28` para ~1 de cada 10. <Badge text="Por validar en piloto" variant="caution" />
+- **Piso y techo de v1**: el colchón nunca baja de ~10% ni supera ~60% de la demanda predicha — una salvaguarda para cuando la estimación de error todavía es ruidosa, tan temprano en el historial de un insumo.
+
+## Medición de precisión
+
+**MASE** (mean absolute scaled error, escalado contra el baseline estacional-ingenuo — "el mismo día de la semana pasada", no un baseline plano) como métrica interna. Se elige sobre MAPE porque MASE se mantiene con sentido incluso con los ceros reales que este dominio tiene (cierres, días sin consumo); MAPE se rompe directamente en cero.
+
+El número que sí se le muestra al dueño del restaurante es el **error en kg/soles**, en el lenguaje del producto — MASE queda interno, solo para el piloto: "0.87 MASE" no significa nada para un restaurantero.
+
+Por cada predicción se guarda: qué método se usó (Holt-Winters completo vs. el fallback intermitente), cuántos días reales de historial existían al momento de predecir, y la estimación de error propia del modelo — específicamente para que el piloto pueda responder, después, "¿mejoró la precisión a medida que se acumuló historial real?", que es la pregunta central que el piloto tiene que contestar.
+
+## Batch nocturno
+
+Un proceso Bun por noche, **una query de Postgres por restaurante** — acota la memoria usada y da un límite de falla limpio por restaurante. Las escrituras son idempotentes vía restricción única + upsert (ver `unique (restaurant_id, ingredient_id, origin_date, target_date)` en [Modelo de datos](/arquitectura/modelo-datos/#predicciones)), así que volver a correr el batch siempre es seguro.
+
+Un insumo con datos malos **no puede tumbar a los otros 99 restaurantes**: cada serie corre envuelta en `try/catch`, cae de vuelta a la última predicción buena conocida si falla, y solo se marca la corrida entera como fallida si la tasa de fallos cruza un umbral que sugiere un bug real, no un dato suelto malo.
+
+No hace falta ninguna cola para este volumen: unas pocas miles de series cortas son sub-segundo de cómputo real — el costo real son los round-trips a Postgres, no el ajuste estadístico en sí.
