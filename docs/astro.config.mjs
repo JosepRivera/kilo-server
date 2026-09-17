@@ -4,11 +4,16 @@ import starlightThemeNova from 'starlight-theme-nova';
 import starlightLlmsTxt from 'starlight-llms-txt';
 import starlightPageContextAction from 'starlight-page-context-action';
 import vercel from '@astrojs/vercel';
+import mermaid from 'astro-mermaid';
 
 export default defineConfig({
 	site: 'https://kilo-docs-mu.vercel.app',
 	adapter: vercel(),
 	integrations: [
+		mermaid({
+			theme: 'neutral',
+			autoTheme: true,
+		}),
 		starlight({
 			title: 'Kilo Docs',
 			description:
@@ -40,6 +45,23 @@ export default defineConfig({
 						{ label: 'Flujo operativo', items: [{ autogenerate: { directory: 'producto/flujo' } }] },
 						{ label: 'Preguntas frecuentes', slug: 'producto/preguntas-frecuentes' },
 						{ label: 'Decisiones descartadas', slug: 'producto/descartado' },
+					],
+				},
+				{
+					label: 'Arquitectura',
+					items: [
+						{ label: 'Visión general técnica', slug: 'arquitectura/vision-general' },
+						{ label: 'Objetivos y restricciones', slug: 'arquitectura/objetivos-restricciones' },
+						{ label: 'Contexto del sistema', slug: 'arquitectura/contexto-sistema' },
+						{ label: 'Estrategia técnica', slug: 'arquitectura/estrategia-tecnica' },
+						{ label: 'Piezas del sistema', slug: 'arquitectura/piezas-sistema' },
+						{ label: 'Modelo de datos', slug: 'arquitectura/modelo-datos' },
+						{ label: 'Motor de predicción', slug: 'arquitectura/motor-prediccion' },
+						{ label: 'Pipeline de voz', slug: 'arquitectura/pipeline-voz' },
+						{ label: 'Flujos en ejecución', slug: 'arquitectura/flujos-ejecucion' },
+						{ label: 'Despliegue', slug: 'arquitectura/despliegue' },
+						{ label: 'Decisiones técnicas', items: [{ autogenerate: { directory: 'arquitectura/decisiones' } }] },
+						{ label: 'Riesgos y deuda técnica', slug: 'arquitectura/riesgos' },
 					],
 				},
 			],

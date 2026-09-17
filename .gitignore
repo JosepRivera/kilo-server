@@ -42,3 +42,6 @@ package-lock.json
 yarn.lock
 pnpm-lock.yaml
 .atl
+
+# Worktrees de agentes (temporales, no son parte del historial)
+.claude/worktrees/
