@@ -32,8 +32,6 @@ export default defineConfig({
 						{ label: 'Visión general', slug: 'producto/vision-general' },
 						{ label: 'Competencia', slug: 'producto/competencia' },
 						{ label: 'Flujo operativo', items: [{ autogenerate: { directory: 'producto/flujo' } }] },
-						{ label: 'Cuenta y dispositivos', slug: 'producto/cuenta-y-dispositivos' },
-						{ label: 'Notificaciones', slug: 'producto/notificaciones' },
 						{ label: 'Preguntas frecuentes', slug: 'producto/preguntas-frecuentes' },
 						{ label: 'Decisiones descartadas', slug: 'producto/descartado' },
 					],
