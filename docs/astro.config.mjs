@@ -11,7 +11,13 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'Kilo Docs',
+			description:
+				'Documentación de producto de Kilo — predicción de demanda de insumos y recomendación de compras para restaurantes pequeños y medianos en Lima.',
+			locales: { root: { label: 'Español', lang: 'es' } },
 			disable404Route: true,
+			lastUpdated: true,
+			editLink: { baseUrl: 'https://github.com/JosepRivera/kilo-server/edit/main/docs/' },
+			pagefind: { ranking: { diacriticSimilarity: 0.8 } },
 			head: [
 				{ tag: 'link', attrs: { rel: 'stylesheet', href: '/ask-widget.css' } },
 				{ tag: 'script', attrs: { src: '/ask-widget.js', defer: true } },
