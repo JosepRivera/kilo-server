@@ -1,0 +1,30 @@
+---
+title: "ADR 0002 — Postgres sin ORM pesado"
+description: Drizzle vs Prisma vs Kysely vs SQL crudo, para el acceso a datos de Kilo.
+sidebar:
+  order: 2
+---
+
+*Estado: diseño — aún no implementado.*
+
+## Estado
+
+Aceptada
+
+## Contexto
+
+El API en Elysia necesita validar requests con TypeBox (ver [Estrategia técnica](/arquitectura/estrategia-tecnica/)) y el esquema de base de datos necesita generar migraciones. Mantener el esquema de validación y el esquema de base de datos como dos fuentes separadas es una fuente de bugs de sincronización real en un equipo pequeño sin tiempo para mantener las dos en sincronía a mano.
+
+## Decisión
+
+**Drizzle ORM + drizzle-kit + drizzle-typebox.** Drizzle genera los esquemas de TypeBox directamente desde las definiciones de tabla — una sola fuente de verdad, sin capa de adaptador entre base de datos y validación (ver [Modelo de datos](/arquitectura/modelo-datos/#orm-drizzle)).
+
+## Alternativas consideradas
+
+- **Prisma**: tiene mejor diffing de migraciones que Drizzle, pero no genera TypeBox — obligaría a mantener el esquema de validación a mano, por separado.
+- **Kysely**: query builder con buena inferencia de tipos, pero tampoco genera TypeBox y agrega una capa más de abstracción sin resolver el problema de la doble fuente de verdad.
+- **SQL crudo**: máximo control, pero sin generación de tipos ni de validación — cada endpoint tendría que declarar su propio esquema de TypeBox a mano, exactamente el problema que se quiere evitar.
+
+## Consecuencias
+
+Drizzle-typebox gana sobre Prisma y Kysely específicamente porque cierra el hueco entre esquema de base de datos y validación de Elysia, que ninguno de los otros dos cierra nativamente. A cambio, el diffing de migraciones de Drizzle es más débil que el de Prisma — cada migración generada se lee antes de aplicarla, nunca se aplica a ciegas (ver [Riesgos y deuda técnica](/arquitectura/riesgos/)). Fijar la versión en la línea 0.45.x, no en los release candidates de 1.0, porque `drizzle-typebox` todavía no está al día con Drizzle 1.0.

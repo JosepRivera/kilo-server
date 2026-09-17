@@ -1,0 +1,28 @@
+---
+title: "ADR 0003 — Sesiones en vez de JWT"
+description: Sesiones opacas guardadas en Postgres vs JWT, para la autenticación de la app móvil.
+sidebar:
+  order: 3
+---
+
+*Estado: diseño — aún no implementado.*
+
+## Estado
+
+Aceptada
+
+## Contexto
+
+La app móvil mantiene sesiones de vida larga, y el producto necesita poder revocar acceso de verdad — un teléfono robado o una suscripción vencida tienen que poder cortar el acceso de inmediato. El volumen de requests autenticados en el piloto es bajo (~100/día).
+
+## Decisión
+
+**Tokens de sesión opacos, guardados en Postgres**, verificados con un round-trip a base de datos en cada request autenticado.
+
+## Alternativas consideradas
+
+- **JWT**: evita el round-trip a base de datos en cada request, pero no se puede revocar sin mantener una lista de bloqueo — que termina siendo el mismo round-trip a base de datos que una sesión opaca, con más complejidad encima (verificación de firma, rotación de claves) sin ganar la revocación real que el producto necesita.
+
+## Consecuencias
+
+Cada request autenticado paga un round-trip a Postgres. A ~100 requests/día en el piloto, ese costo es imperceptible — la decisión se revisitaría solo si el volumen de requests creciera órdenes de magnitud, momento en el que valdría la pena medir el costo real antes de cambiar de mecanismo.

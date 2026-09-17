@@ -1,0 +1,29 @@
+---
+title: "ADR 0001 — Bun y Elysia como runtime"
+description: Bun+Elysia vs Node+Express/Fastify vs Python+FastAPI, para el API de Kilo.
+sidebar:
+  order: 1
+---
+
+*Estado: diseño — aún no implementado.*
+
+## Estado
+
+Aceptada
+
+## Contexto
+
+Kilo necesita un runtime y framework para el API, elegido por un equipo solo o muy pequeño (ver [Objetivos y restricciones](/arquitectura/objetivos-restricciones/)). El motor de predicción (Holt-Winters) también necesita correr en algún lenguaje — ver [ADR 0004](/arquitectura/decisiones/0004-holt-winters-en-proceso-no-microservicio/) para esa decisión relacionada.
+
+## Decisión
+
+**Bun + ElysiaJS.** TypeScript de punta a punta — cliente, API y la lógica de pronóstico escrita a mano — en un solo lenguaje.
+
+## Alternativas consideradas
+
+- **Node + Express/Fastify**: ecosistema más grande y maduro que Bun. Descartada porque no aporta nada que Bun no tenga ya para este caso de uso, y Bun es más rápido para levantar y correr.
+- **Python + FastAPI**: tiene el ecosistema de ML/pronóstico nativo (`statsmodels`). Descartada porque forzaría dos lenguajes distintos entre cliente y servidor, y Holt-Winters aditivo es lo bastante simple como para no necesitar ese ecosistema en producción (ver [ADR 0004](/arquitectura/decisiones/0004-holt-winters-en-proceso-no-microservicio/)).
+
+## Consecuencias
+
+Un solo lenguaje en todo el stack reduce la carga cognitiva de un equipo solo, a costa de renunciar al ecosistema más grande de Node y a las librerías de ML nativas de Python — ninguna de las dos ventajas pesa más que tener TypeScript de punta a punta para este equipo y esta escala.

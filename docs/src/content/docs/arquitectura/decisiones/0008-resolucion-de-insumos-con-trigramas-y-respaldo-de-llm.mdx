@@ -1,0 +1,29 @@
+---
+title: "ADR 0008 — Resolución de insumos: trigramas con respaldo de LLM"
+description: pg_trgm + respaldo de LLM vs LLM puro vs embeddings/pgvector, para resolver insumos dictados contra el catálogo.
+sidebar:
+  order: 8
+---
+
+*Estado: diseño — aún no implementado.*
+
+## Estado
+
+Aceptada
+
+## Contexto
+
+Cada insumo dictado por voz tiene que resolverse contra el catálogo del restaurante — exacto, ambiguo, o nuevo (ver [Fase 1 de Producto](/producto/flujo/fase-1-configuracion-inicial/)). El catálogo por restaurante es de cientos de filas, no miles.
+
+## Decisión
+
+**`pg_trgm` (similitud de trigramas) + `unaccent` como primera pasada, con Claude Haiku como respaldo** cuando la similitud es ambigua o vacía (ver [Pipeline de voz — resolución de insumos](/arquitectura/pipeline-voz/#resolución-de-insumos)).
+
+## Alternativas consideradas
+
+- **LLM puro para toda resolución**: más caro y más lento por cada registro, sin necesidad — la mayoría de los casos son coincidencias exactas o casi exactas que trigramas resuelve en sub-milisegundo.
+- **Embeddings + pgvector**: resolvería también los sinónimos sin substring compartido que trigramas no ve ("pota" vs. "calamar"), pero agrega infraestructura de vectores (generación de embeddings, índice vectorial) que no se justifica para un catálogo de cientos de filas por restaurante.
+
+## Consecuencias
+
+Trigramas cubre la mayoría de los casos casi gratis; el respaldo de LLM cubre específicamente el hueco de sinónimos sin substring compartido, que el catálogo no resuelve con una lista de alias por diseño de producto. Si el catálogo creciera a un tamaño donde trigramas empiece a fallar más seguido, o los sinónimos sin substring se vuelvan el caso común, valdría la pena reconsiderar embeddings.

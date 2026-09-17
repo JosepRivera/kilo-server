@@ -1,0 +1,28 @@
+---
+title: "ADR 0005 — Postgres sin extensiones de series de tiempo"
+description: Postgres plano vs TimescaleDB, con la aritmética de filas como evidencia decisiva.
+sidebar:
+  order: 5
+---
+
+*Estado: diseño — aún no implementado.*
+
+## Estado
+
+Aceptada
+
+## Contexto
+
+El sistema guarda series de tiempo por insumo (consumo diario, predicciones). TimescaleDB es la extensión de Postgres más conocida para este tipo de dato.
+
+## Decisión
+
+**Postgres plano, sin extensiones de series de tiempo.**
+
+## Alternativas consideradas
+
+- **TimescaleDB**: optimiza consultas e inserciones sobre series de tiempo a gran volumen, pero agrega una pieza de infraestructura más — hypertables, compresión, políticas de retención — que operar, para un volumen que no la necesita.
+
+## Consecuencias
+
+La evidencia decisiva es la cuenta de filas: **~2.2 millones de filas de consumo al año a 100 restaurantes × 60 insumos** — trivial para Postgres plano con los índices adecuados (ver [Modelo de datos — índices](/arquitectura/modelo-datos/#índices-que-importan)). Si el volumen creciera órdenes de magnitud por encima de esto, TimescaleDB volvería a ser una opción razonable a revisar.

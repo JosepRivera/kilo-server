@@ -1,0 +1,29 @@
+---
+title: "ADR 0006 — Aislamiento multi-restaurante sin Row-Level Security"
+description: Claves foráneas compuestas vs Postgres RLS vs esquema-por-tenant, para el aislamiento entre restaurantes.
+sidebar:
+  order: 6
+---
+
+*Estado: diseño — aún no implementado.*
+
+## Estado
+
+Aceptada, con revisión futura
+
+## Contexto
+
+Los datos de un restaurante nunca deben mezclarse con los de otro — es uno de los [objetivos no negociables](/arquitectura/objetivos-restricciones/) del sistema. Con tablas compartidas y `restaurant_id`, hace falta un mecanismo que garantice ese aislamiento de forma confiable para un equipo solo, sin revisión de seguridad dedicada en cada cambio.
+
+## Decisión
+
+**Claves foráneas compuestas** — `(restaurant_id, ingredient_id) → ingredients(restaurant_id, id)` — como mecanismo obligatorio (ver [Modelo de datos](/arquitectura/modelo-datos/#aislamiento-entre-restaurantes)). Esto hace estructuralmente imposible, a nivel de esquema, que una fila de un restaurante apunte a un insumo de otro.
+
+## Alternativas consideradas
+
+- **Postgres Row-Level Security (RLS)**: la opción estándar de la industria para multi-tenancy en Postgres. Postergada para v1, no rechazada — dos footguns reales para un desarrollador solo: un rol `BYPASSRLS` necesario para el batch nocturno de agregación cross-tenant de la Capa 1 se convierte otra vez en la superficie de ataque completa que RLS existe para evitar; y las variables de sesión (`SET LOCAL`) que RLS típicamente usa para identificar el tenant actual se filtran entre conexiones pooled si se setean fuera de una transacción.
+- **Esquema separado por tenant**: aislamiento fuerte, pero implica una migración por restaurante y una complejidad operativa que no tiene sentido a la escala del piloto (3-5 restaurantes, escalando a decenas-cientos).
+
+## Consecuencias
+
+Las FK compuestas dan aislamiento estructural sin necesitar el rol `BYPASSRLS` ni las variables de sesión que hacen a RLS riesgoso para un equipo solo. **Punto de revisión concreto**: revisitar esta decisión si el equipo crece más allá de un desarrollador solo, o si una revisión de seguridad pide defensa en profundidad más allá de la capa de FK (ver también [Riesgos y deuda técnica](/arquitectura/riesgos/)).

@@ -1,0 +1,28 @@
+---
+title: "ADR 0007 — Transcripción de voz: ElevenLabs con Groq como respaldo"
+description: Scribe v2 primario vs Whisper único, el tradeoff de costo/precisión.
+sidebar:
+  order: 7
+---
+
+*Estado: diseño — aún no implementado.*
+
+## Estado
+
+Aceptada
+
+## Contexto
+
+El pipeline de voz depende críticamente de transcribir bien secuencias de números dictados en español peruano (ver [Pipeline de voz](/arquitectura/pipeline-voz/)). El proyecto partía de Groq Whisper como única opción de transcripción.
+
+## Decisión
+
+**ElevenLabs Scribe v2 como proveedor primario**, con **Groq Whisper Large v3 Turbo como respaldo económico** — una mejora sobre la intención original, no un reemplazo.
+
+## Alternativas consideradas
+
+- **Solo Whisper (Groq)**: más barato, pero con mayor tasa de error y sin soporte real de *keyterm/vocabulary biasing* (el campo `prompt` tiene un tope de 224 tokens y sesgo suave, no fue diseñado como lista de palabras clave).
+
+## Consecuencias
+
+Scribe reduce aproximadamente a la mitad la tasa de error frente a Whisper, por una diferencia de costo de centavos por restaurante al mes al volumen del piloto (ver [Pipeline de voz — modelo de costo](/arquitectura/pipeline-voz/#modelo-de-costo)). El riesgo de precisión en secuencias de dígitos en español peruano sigue sin validar contra un corpus propio — ver [Riesgos y deuda técnica](/arquitectura/riesgos/). Whisper queda disponible como fallback si Scribe falla o no está disponible.

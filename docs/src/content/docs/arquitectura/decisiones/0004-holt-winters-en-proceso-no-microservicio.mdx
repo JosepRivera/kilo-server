@@ -1,0 +1,28 @@
+---
+title: "ADR 0004 — Holt-Winters en proceso, no microservicio"
+description: TypeScript en proceso vs un servicio de pronóstico separado en Python, para el motor de predicción.
+sidebar:
+  order: 4
+---
+
+*Estado: diseño — aún no implementado.*
+
+## Estado
+
+Aceptada
+
+## Contexto
+
+El motor de predicción usa suavizamiento exponencial de Holt-Winters (nivel + estacionalidad semanal, ver [Motor de predicción](/arquitectura/motor-prediccion/)). Python con `statsmodels` es la opción más común en la industria para esto, pero el stack del resto del sistema es Bun/TypeScript (ver [ADR 0001](/arquitectura/decisiones/0001-bun-y-elysia-como-runtime/)).
+
+## Decisión
+
+Implementar Holt-Winters aditivo **en TypeScript, en proceso, dentro del mismo binario del API/batch nocturno** — no un servicio separado.
+
+## Alternativas consideradas
+
+- **Servicio de pronóstico separado en Python (`statsmodels`)**: le ahorraría reimplementar el método, pero costaría un contenedor más, un pipeline de deploy más y una superficie de guardia más — para un método que en TypeScript son ~200-300 líneas sin partes numéricamente delicadas (sin inversión de matrices, sin optimizador de MLE).
+
+## Consecuencias
+
+La implementación propia en TypeScript se valida una vez, offline, contra `statsmodels` sobre series sintéticas de verdad conocida y ~50 series reales del piloto, exigiendo acuerdo numérico — un script de validación de una sola vez, no una dependencia corriendo en producción. Este es el riesgo real aceptado a cambio de no operar un segundo runtime.

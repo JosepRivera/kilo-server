@@ -1,0 +1,28 @@
+---
+title: "ADR 0009 — App multiplataforma con Expo"
+description: Expo/React Native Web vs Flutter, y el alcance del target Web como solo lectura en v1.
+sidebar:
+  order: 9
+---
+
+*Estado: diseño — aún no implementado.*
+
+## Estado
+
+Aceptada
+
+## Contexto
+
+Kilo es una app multiplataforma — Android, iOS y Web desde el mismo código base (ver [Visión general de producto](/producto/vision-general/)). El registro de voz es el flujo más crítico del producto y tiene que funcionar bien en los tres targets.
+
+## Decisión
+
+**Expo (React Native + React Native Web)**, con un alcance explícito: el target **Web en v1 es de solo lectura/reporting** — la grabación de voz queda **mobile-only**.
+
+## Alternativas consideradas
+
+- **Flutter**: también multiplataforma con buen soporte de Web y móvil. El factor decisivo en contra: la grabación de audio en iOS Safari (el navegador que importa para el target Web en iOS) tiene limitaciones documentadas que complican un flujo de grabación confiable en el navegador — un hallazgo de la investigación previa a esta decisión. Expo con React Native Web no evita ese problema del navegador en sí, pero permite resolverlo restringiendo el alcance (voz solo en apps nativas) en vez de pelear contra la limitación del navegador.
+
+## Consecuencias
+
+El target Web sirve reportes y recomendaciones en v1, no grabación de voz — esto es una decisión de alcance visible, no solo una línea de letra chica en otra página. Si la grabación en navegador se vuelve un requisito real más adelante (por ejemplo, para que un dueño revise desde una computadora de oficina), habría que resolver las limitaciones de grabación de audio en Safari como su propio esfuerzo, no asumir que ya está resuelto por elegir Expo.
