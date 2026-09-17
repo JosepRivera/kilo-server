@@ -62,9 +62,9 @@
 	}
 
 	const SUGGESTIONS = [
-		'¿Cómo se calcula el precio mensual?',
-		'¿Qué pasa si el dueño pierde el chip?',
-		'¿Por qué se eligió Culqi para los cobros?',
+		'¿Por qué Kilo no necesita un POS?',
+		'¿Qué pasa si me olvido de registrar un día?',
+		'¿Cuánto tarda en aprender mi restaurante?',
 	];
 
 	function init() {

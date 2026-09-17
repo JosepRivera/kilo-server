@@ -12,6 +12,23 @@ const MAX_CORPUS_CHARS = 150000;
 const MAX_HISTORY_MESSAGES = 8;
 const MAX_HISTORY_MESSAGE_CHARS = 2000;
 
+const MAX_ATTEMPTS = 3;
+const MIN_ANSWER_CHARS = 25;
+const TEMPERATURE = 0.2;
+const MAX_ANSWER_TOKENS = 1000;
+
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX_REQUESTS = 10;
+const recentRequests = new Map<string, number[]>();
+
+function isRateLimited(ip: string): boolean {
+	const now = Date.now();
+	const hits = (recentRequests.get(ip) ?? []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+	hits.push(now);
+	recentRequests.set(ip, hits);
+	return hits.length > RATE_LIMIT_MAX_REQUESTS;
+}
+
 type HistoryMessage = { role: 'user' | 'assistant'; content: string };
 
 function sanitizeHistory(raw: unknown): HistoryMessage[] {
@@ -40,10 +57,14 @@ async function buildCorpus(): Promise<string> {
 
 const ALLOWED_ORIGINS = ['https://kilo-docs-mu.vercel.app', 'http://localhost:4321'];
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, clientAddress }) => {
 	const origin = request.headers.get('origin');
-	if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+	if (!origin || !ALLOWED_ORIGINS.includes(origin)) {
 		return json({ error: 'Origen no permitido.' }, 403);
+	}
+
+	if (isRateLimited(clientAddress ?? 'desconocido')) {
+		return json({ error: 'Demasiadas preguntas seguidas. Espera un momento.' }, 429);
 	}
 
 	const apiKey = import.meta.env.GROQ_API_KEY ?? process.env.GROQ_API_KEY;
@@ -99,30 +120,31 @@ ${corpus}
 			},
 			body: JSON.stringify({
 				model: MODEL,
-				temperature: 0.2,
-				max_tokens: 1000,
+				temperature: TEMPERATURE,
+				max_tokens: MAX_ANSWER_TOKENS,
 				messages: [{ role: 'system', content: systemPrompt }, ...history, { role: 'user', content: question }],
 			}),
 		});
 		if (!res.ok) {
-			const errText = await res.text();
-			return { ok: false, error: `Groq respondió ${res.status}: ${errText.slice(0, 300)}` };
+			console.error(`Groq respondió ${res.status}:`, await res.text());
+			return { ok: false, error: 'El asistente no está disponible en este momento.' };
 		}
 		const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
 		return { ok: true, text: data.choices?.[0]?.message?.content?.trim() ?? 'Sin respuesta.' };
 	}
 
-	const MAX_ATTEMPTS = 3;
 	let result = await callGroq();
-	for (let attempt = 1; attempt < MAX_ATTEMPTS && result.ok && result.text.length < 25; attempt++) {
+	let lastGood = result.ok ? result : null;
+	for (let attempt = 1; attempt < MAX_ATTEMPTS && result.ok && result.text.length < MIN_ANSWER_CHARS; attempt++) {
 		result = await callGroq();
+		if (result.ok) lastGood = result;
 	}
 
-	if (!result.ok) {
-		return json({ error: result.error }, 502);
+	if (!lastGood) {
+		return json({ error: result.ok ? 'Sin respuesta.' : result.error }, 502);
 	}
 
-	let answer = result.text;
+	let answer = lastGood.text;
 	if (answer.includes('no está definido en la documentación')) {
 		answer += '\n\nSi crees que sí debería estar, prueba reformular la pregunta enfocándola directamente en el tema — frases como "fuera de la documentación" o "más allá del documento" a veces confunden al asistente.';
 	}
