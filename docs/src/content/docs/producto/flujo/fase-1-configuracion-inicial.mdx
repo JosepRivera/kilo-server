@@ -1,12 +1,12 @@
 ---
-title: "Fase 1 — Onboarding"
+title: "Fase 1 — Configuración inicial"
 description: Catálogo pre-cargado (SISAP de MIDAGRI), búsqueda por nombre, unidad de medida, datos declarados y clasificación crítico/secundario de insumos.
 sidebar:
   order: 1
 ---
 
 
-El catálogo de insumos **no se arma en un paso de setup separado**: sale del primer registro de stock, hecho de inmediato — no se espera a la noche —, con el mismo mecanismo de voz de la [Fase 2](/producto/flujo/fase-2-registro-diario/). Cada insumo mencionado queda agregado al catálogo, resuelto contra el catálogo maestro, y ese stock sirve de línea base del **día 0** para poder calcular consumo desde el primer cierre nocturno real.
+El catálogo de insumos **no se arma en un paso de configuración aparte**: sale del primer registro de stock, hecho de inmediato — no se espera a la noche —, con el mismo mecanismo de voz de la [Fase 2](/producto/flujo/fase-2-registro-diario/). Cada insumo mencionado queda agregado al catálogo, resuelto contra el catálogo maestro, y ese stock sirve de línea base del **día 0** para poder calcular consumo desde el primer cierre nocturno real.
 
 ## Catálogo base
 
@@ -16,7 +16,7 @@ El catálogo se construye conceptualmente a partir de los datos de mercados mayo
 
 Cada insumo del catálogo tiene un **nombre canónico** (ej. "Limón sutil", "Lima persa") — sin lista de alias por separado. Cuando se menciona uno por primera vez, el sistema lo resuelve contra el catálogo maestro: si el nombre es **exacto**, lo agrega directo; si un término parcial como "limón" **coincide con más de uno**, muestra las coincidencias para elegir; si **no coincide con nada**, pide confirmación antes de crear un insumo nuevo — nunca crea uno silenciosamente por una transcripción ambigua.
 
-![Pantalla de búsqueda y selección de insumos del catálogo: se busca "limón" y aparecen Limón sutil, Limón tahití, Lima persa y, con menor coincidencia, Limonada; hay una opción para crear un insumo nuevo si no aparece en la lista](../../../../assets/onboarding-catalog-search.png)
+![Pantalla de búsqueda y selección de insumos del catálogo: se busca "limón" y aparecen Limón sutil, Limón tahití, Lima persa y, con menor coincidencia, Limonada; hay una opción para crear un insumo nuevo si no aparece en la lista](../../../../assets/catalog-search-screen.png)
 
 ## Unidad de medida y conversiones
 
@@ -36,4 +36,4 @@ Cada insumo también se clasifica como:
 - **Crítico**: se registra a diario. Típicamente proteínas y otros insumos caros o perecibles.
 - **Secundario**: se registra semanalmente, o se deja en un valor de referencia fijo. Típicamente insumos baratos y de larga duración (ej. sal).
 
-Esto **no lo declara el encargado de compras insumo por insumo**: cada insumo trae un default heredado del catálogo maestro (proteínas y perecibles → crítico, abarrotes y condimentos → secundario). Después de los primeros días de uso real, con el catálogo ya armado, se le muestra **una sola pantalla de revisión en bloque** para corregir lo que no calce con su negocio — no una confirmación por insumo.
+Esto **no lo declara el encargado de compras insumo por insumo**: cada insumo trae un valor por defecto heredado del catálogo maestro (proteínas y perecibles → crítico, abarrotes y condimentos → secundario). Después de los primeros días de uso real, con el catálogo ya armado, se le muestra **una sola pantalla de revisión en bloque** para corregir lo que no calce con su negocio — no una confirmación por insumo.

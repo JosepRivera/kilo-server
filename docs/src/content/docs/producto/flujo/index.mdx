@@ -1,6 +1,6 @@
 ---
 title: Resumen
-description: Las 5 fases del ciclo operativo de Kilo — onboarding, registro por voz, procesamiento nocturno, recomendación de compra y registro de compra — con ejemplos numéricos completos.
+description: Las 5 fases del ciclo operativo de Kilo — configuración inicial, registro por voz, procesamiento nocturno, recomendación de compra y registro de compra — con ejemplos numéricos completos.
 sidebar:
   order: 0
 ---
@@ -11,28 +11,28 @@ Este documento describe el ciclo operativo completo de Kilo, de principio a fin,
 
 ## El ciclo
 
-![Diagrama del ciclo operativo de Kilo: la Fase 1 (Onboarding, una vez) alimenta el ciclo diario de las Fases 2 a 5, y la Fase 5 vuelve a alimentar la Fase 2 para la siguiente vuelta](../../../../assets/daily-cycle-diagram.png)
+![Diagrama del ciclo operativo de Kilo: la Fase 1 (configuración inicial, una vez) alimenta el ciclo diario de las Fases 2 a 5, y la Fase 5 vuelve a alimentar la Fase 2 para la siguiente vuelta](../../../../assets/daily-cycle-diagram.png)
 
 Es un ciclo y no una lista porque la última fase alimenta a la primera: la compra registrada en la Fase 5 deja el stock del que parte el cierre por voz de la Fase 2 de la noche siguiente. Cada vuelta del ciclo agrega un día real de historial, y ese historial es lo que hace más precisa la predicción de la vuelta siguiente.
 
 ## Las 5 fases
 
 <CardGrid>
-	<Card title="Fase 1 — Onboarding" icon="rocket">
-		Una vez, al empezar. Catálogo pre-cargado, unidad de medida, datos declarados y clasificación crítico/secundario de insumos. [Ver el detalle](/producto/flujo/fase-1-onboarding/).
+	<Card title="Fase 1 — Configuración inicial" icon="rocket">
+		Una vez, al empezar. Catálogo pre-cargado, unidad de medida, datos declarados y clasificación crítico/secundario de insumos. [Ver el detalle](/producto/flujo/fase-1-configuracion-inicial/).
 	</Card>
 	<Card title="Fase 2 — Registro diario por voz" icon="comment">
-		Cada noche, al cerrar. Cierre diario de stock remanente por voz, guardarraíl de anomalías y manejo de huecos. [Ver el detalle](/producto/flujo/fase-2-registro-diario/).
+		Cada noche, al cerrar. Cierre diario de stock remanente por voz, control de anomalías y manejo de huecos. [Ver el detalle](/producto/flujo/fase-2-registro-diario/).
 	</Card>
 	<Card title="Fase 3 — Procesamiento nocturno" icon="moon">
 		Automático, de madrugada. Holt-Winters y el sistema de 3 capas de arranque en frío, con ejemplos completos. [Ver el detalle](/producto/flujo/fase-3-prediccion/).
 	</Card>
 	<Card title="Fase 4 — Recomendación de compra" icon="list-format">
-		En la mañana, antes de ir al mercado. Cuánto comprar, alertas de vencimiento por lote (FIFO) y el ahorro visible mes a mes. [Ver el detalle](/producto/flujo/fase-4-recomendador/).
+		En la mañana, antes de ir al mercado. Cuánto comprar y alertas de vencimiento por lote (FIFO). [Ver el detalle](/producto/flujo/fase-4-recomendador/).
 	</Card>
 	<Card title="Fase 5 — Registro de compra" icon="add-document">
 		Al volver del mercado. Qué se compró, cuánto y a qué costo; cada compra queda como un lote. [Ver el detalle](/producto/flujo/fase-5-registro-compra/).
 	</Card>
 </CardGrid>
 
-Empieza por [Fase 1 — Onboarding](/producto/flujo/fase-1-onboarding/).
+Empieza por [Fase 1 — Configuración inicial](/producto/flujo/fase-1-configuracion-inicial/).

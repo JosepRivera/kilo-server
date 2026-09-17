@@ -22,12 +22,18 @@ Vale ser honestos: **Fudo no es caro**. Según su [página de precios](https://f
 
 La diferencia real es otra: **Fudo es un punto de venta (POS)**. Para que su inventario diga algo útil hay que registrar **cada venta** en su caja, todos los días. Ese es exactamente el trabajo que este segmento no hace y no quiere empezar a hacer. Kilo pide ~30 segundos de voz al cierre y nunca pide registrar una venta: sin POS, sin caja, sin registrar ventas.
 
-Además, su [centro de ayuda](https://soporte.fu.do/es/articles/12532751-reporte-de-stock) publica la fórmula de su sugerencia de compra verbatim: *"(Stock mínimo − Stock actual) + (7 × Consumo diario promedio)"* — un promedio plano que no distingue un viernes de un martes. Kilo sí aprende esa estacionalidad (ver [Fase 3 — Procesamiento nocturno](/producto/flujo/fase-3-prediccion/)).
+Además, su [centro de ayuda](https://soporte.fu.do/es/articles/12532751-reporte-de-stock) publica textualmente la fórmula de su sugerencia de compra: *"(Stock mínimo − Stock actual) + (7 × Consumo diario promedio)"* — un promedio plano que no distingue un viernes de un martes. Kilo sí aprende esa estacionalidad (ver [Fase 3 — Procesamiento nocturno](/producto/flujo/fase-3-prediccion/)).
 
 ## WISK
 
-Aquí el costo sí es una barrera dura para este segmento. Según su [página de precios](https://www.wisk.ai/price), no es un cobro por usuario (el tier base incluye 5 usuarios) — la integración con POS viene incluida en el fee de implementación, sin aclarar si es opcional u obligatoria para operar — pero el conjunto de suscripción más implementación está fuera de alcance para un restaurante pequeño de Lima.
+Aquí el costo sí es una barrera dura para este segmento. Según su [página de precios](https://www.wisk.ai/price), no es un cobro por usuario (el plan base incluye 5 usuarios) — la integración con POS viene incluida en el costo de implementación, sin aclarar si es opcional u obligatoria para operar — pero la suscripción más la implementación quedan fuera del alcance de un restaurante pequeño de Lima.
 
 ## El hueco que Kilo llena
 
-Ninguna de estas opciones sirve al mismo segmento: restaurantes pequeños de Lima que no tienen POS (sistema de punto de venta / caja), no emiten factura formal (no tienen RUC — el Registro Único de Contribuyente, el número tributario de un negocio formal en Perú), y no van a empezar a registrar cada venta en una caja para ganar control de inventario. POS y RUC no son requisitos técnicos — Kilo funciona igual sin ellos — son solo la señal de qué tan informal es el negocio objetivo.
+Ninguna de estas opciones sirve al segmento que Kilo apunta: restaurantes pequeños de Lima que
+
+- no tienen **POS** (sistema de punto de venta, la caja del local),
+- no emiten factura formal — no tienen **RUC**, el número tributario de un negocio formal en Perú,
+- y no van a empezar a registrar cada venta en una caja solo para tener control de inventario.
+
+POS y RUC no son requisitos técnicos — Kilo funciona igual sin ellos — son solo la señal de qué tan informal es el negocio objetivo.

@@ -7,12 +7,15 @@ Esta página junta todo lo que Kilo evaluó y decidió **no** construir (por aho
 
 ## Catálogo de insumos
 
-- **TPCA del INS/MINSA** (tabla de composición de alimentos) como fuente del catálogo — se evaluó, pero es una tabla pensada para composición nutricional, no para el lenguaje de compra real de un restaurante: no distingue variedades comerciales ni usa los nombres que un encargado de compras realmente dice en voz alta — [ver contexto](/producto/flujo/fase-1-onboarding/).
+- **TPCA del INS/MINSA** (tabla de composición de alimentos) como fuente del catálogo — se evaluó, pero es una tabla pensada para composición nutricional, no para el lenguaje de compra real de un restaurante: no distingue variedades comerciales ni usa los nombres que un encargado de compras realmente dice en voz alta — [ver contexto](/producto/flujo/fase-1-configuracion-inicial/).
 
 ## Registro diario y manejo de huecos
 
-- **Promedio ponderado por cantidad** para el costo cuando hay dos compras del mismo insumo el mismo día a precios distintos — descartado; como cada compra ya se registra como su propio lote (fecha + cantidad + costo), dos compras del mismo día a precios distintos se tratan simplemente como dos lotes separados, el mismo mecanismo ya usado para compras en días distintos, sin caso especial ni pérdida de precisión — [ver contexto](/producto/flujo/fase-2-registro-diario/).
 - **Depender únicamente de un botón diario manual** para cierres recurrentes (ej. "cerrado los domingos") — descartado como único mecanismo, por el riesgo real de que el encargado de compras se olvide de marcarlo cada semana; se complementa con una regla de cierre recurrente configurable, que un registro de voz real siempre anula para una fecha puntual — [ver contexto](/producto/flujo/fase-2-registro-diario/).
+
+## Registro de compra
+
+- **Promedio ponderado por cantidad** para el costo cuando hay dos compras del mismo insumo el mismo día a precios distintos — descartado; como cada compra ya se registra como su propio lote (fecha + cantidad + costo), dos compras del mismo día a precios distintos se tratan simplemente como dos lotes separados, el mismo mecanismo ya usado para compras en días distintos, sin caso especial ni pérdida de precisión — [ver contexto](/producto/flujo/fase-5-registro-compra/).
 
 ## Predicción y cold-start
 
@@ -21,21 +24,6 @@ Esta página junta todo lo que Kilo evaluó y decidió **no** construir (por aho
 ## Recomendador de compras
 
 - **Preguntarle al encargado de compras qué lote está usando en la cocina** — el sistema asume FIFO internamente en vez de pedir ese dato, porque el total de soles perdidos al mes sigue siendo preciso sin importar el orden real de consumo — [ver contexto](/producto/flujo/fase-4-recomendador/).
-
-## Notificaciones
-
-- **SMS para notificaciones operativas generales** — se cobra por mensaje mientras el push cuesta S/0, así que el SMS queda reservado solo para la verificación de identidad, no para el uso diario — [ver contexto](/producto/notificaciones/).
-- **Twilio como proveedor de SMS** — US$0.2476 por mensaje a Perú frente a **US$0.10 (S/0.34)** de Firebase Auth por el mismo envío, con los primeros 10 del día sin cobro; se reemplazó por Firebase — [ver contexto](/producto/notificaciones/).
-- **OTP por WhatsApp** — exigía una cotización de un BSP (proveedor autorizado de la API de WhatsApp) que nunca se consiguió, y con el SMS de Firebase a S/0.34 el ahorro dejó de justificar la integración — [ver contexto](/producto/notificaciones/).
-- **WhatsApp Business API para notificaciones en el MVP** — técnicamente barato, pero queda como mejora futura condicionada a evidencia real del piloto de que las fallas de entrega de push están causando problemas — [ver contexto](/producto/notificaciones/).
-- **Guardar el token de sesión en `localStorage` en la versión web** — descartado: `localStorage` es accesible desde JavaScript, así que cualquier script inyectado en la página puede leerlo. El refresh token va en una **cookie `httpOnly`**, que JavaScript no puede tocar — [ver contexto](/producto/cuenta-y-dispositivos/).
-- **Google/Apple como método de login primario y único** — lo descartado es que reemplace al teléfono, no el login social en sí: el teléfono sigue siendo el método primario porque calca el patrón de Yape que el dueño ya conoce y funciona en un dispositivo compartido entre personal. **Google Sign-In sí se ofrece al lado**, como segunda puerta a la misma cuenta: es gratis en Firebase Auth y resuelve la recuperación cuando el dueño pierde el chip — [ver contexto](/producto/cuenta-y-dispositivos/).
-
-## Cuenta, dispositivos y roles
-
-- **UI multi-sucursal completa en el MVP** — el esquema de datos ya está preparado para múltiples sucursales, pero el MVP solo expone en la interfaz la gestión de una sucursal por cuenta inicialmente — [ver contexto](/producto/cuenta-y-dispositivos/).
-- **Teléfono personal por empleado** — descartado por la zona gris legal de tipo BYOD/laboral en Perú (no existe un estatuto claro que obligue o prohíba que el empleador entregue un dispositivo de trabajo); en su lugar se usa un dispositivo de trabajo compartido por sucursal — [ver contexto](/producto/cuenta-y-dispositivos/).
-- **Modelo de roles Dueño/Encargado** — se evaluó un segundo tipo de usuario (rol "Encargado", operativo, sin acceso a financials) para cubrir sucursales donde el dueño no puede estar presente cada noche, pero se descartó a favor de un **actor único** (el Dueño): no había una segunda identidad real que modelar, y la necesidad operativa se resolvía por completo con un dispositivo compartido que se queda autenticado a la cuenta del dueño, sin pagar el costo de un segundo flujo de autenticación, un flujo de invitación, ni un sistema de permisos — [ver contexto](/producto/cuenta-y-dispositivos/).
 
 ## Alcance del producto
 
