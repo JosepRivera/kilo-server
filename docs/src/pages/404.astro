@@ -1,7 +1,41 @@
 ---
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+const frontmatter = {
+	title: 'Esta página no existe',
+	template: 'splash' as const,
+	editUrl: false,
+	pagefind: false,
+	hero: {
+		tagline:
+			'El enlace que seguiste está roto o la página cambió de sitio. Estos son los puntos de entrada de la documentación.',
+		actions: [
+			{ text: 'Ir al inicio', link: '/', icon: 'right-arrow' as const },
+			{
+				text: 'Visión general',
+				link: '/producto/vision-general/',
+				icon: 'open-book' as const,
+				variant: 'minimal' as const,
+			},
+		],
+	},
+};
 ---
 
-<StarlightPage frontmatter={{ title: '404', template: 'splash', editUrl: false }}>
-	<p>Esta página no existe. Vuelve a la <a href="/producto/vision-general/">visión general</a> o al <a href="/">inicio</a>.</p>
+<StarlightPage frontmatter={frontmatter}>
+	<CardGrid>
+		<Card title="Visión general" icon="open-book">
+			El problema, el cliente y la solución. <a href="/producto/vision-general/">Ver Visión general</a>.
+		</Card>
+		<Card title="Flujo operativo" icon="setting">
+			Las 5 fases del ciclo, del catálogo inicial a la compra. <a href="/producto/flujo/">Ver Flujo operativo</a>.
+		</Card>
+		<Card title="Preguntas frecuentes" icon="question">
+			El porqué de cada decisión y los casos raros. <a href="/producto/preguntas-frecuentes/">Ver Preguntas frecuentes</a>.
+		</Card>
+		<Card title="Competencia" icon="bars">
+			PANCA, Aurant, Fudo y WISK, y qué hace distinto a Kilo. <a href="/producto/competencia/">Ver Competencia</a>.
+		</Card>
+	</CardGrid>
 </StarlightPage>
