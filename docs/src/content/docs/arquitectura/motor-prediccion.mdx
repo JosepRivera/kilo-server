@@ -9,7 +9,7 @@ import { Aside, Badge } from '@astrojs/starlight/components';
 
 *Estado: diseño — aún no implementado.*
 
-Esta página es la versión técnica precisa del motor de predicción que [Fase 3 de Producto](/producto/flujo/fase-3-prediccion/) describe para un lector no técnico. No la contradice — la refina, y en dos puntos concretos (marcados abajo) corrige cómo se imagina el mecanismo desde una lectura literal de esa página.
+Esta página es la versión técnica precisa del motor de predicción que [Fase 3 de Producto](/producto/flujo/fase-3-prediccion/) describe para un lector no técnico. No la contradice — la refina, y en dos puntos concretos (marcados abajo) da el detalle técnico que un lector no técnico no necesita. Los números concretos con los que arranca el motor están en [Parámetros iniciales](/arquitectura/parametros-iniciales/).
 
 ## Corre en proceso, en TypeScript — no un servicio separado en Python
 
@@ -25,23 +25,35 @@ Multiplicativa divide por el nivel y por los índices estacionales — y los cie
 
 Una tendencia ajustada sobre 28 días ruidosos extrapola hacia números sin sentido — no hay suficiente señal de tendencia recuperable en tan pocos datos. Esto es un refinamiento sobre la descripción de Fase 3 de Producto, que hoy no distingue explícitamente este punto.
 
+### Parámetros de suavizado de v1: α = 0.2, γ = 0.2, β = 0, todos fijos
+
+En v1 los tres parámetros van **fijos**, sin búsqueda: α = 0.2 (nivel), γ = 0.2 (estacionalidad) y β = 0 (tendencia apagada). La razón es que con solo 28 puntos, ajustar los parámetros a los datos haría que el modelo aprenda el ruido de esas 4 semanas.
+
+¿Por qué γ = 0.2 y no 0.1? Los índices estacionales se actualizan una vez por semana. Después de 4 semanas, la creencia inicial todavía conserva un peso de `(1 − γ)^4`: con γ = 0.1 son ~66% (al día 28 el patrón semanal seguiría siendo casi toda la suposición plana del inicio); con γ = 0.2 son ~41%.
+
+Más adelante, con 8 o más semanas de historial, se puede abrir una búsqueda de parámetros con tope en 0.3. Todos los valores viven en el archivo de configuración previsto (ver [Parámetros iniciales](/arquitectura/parametros-iniciales/#un-solo-archivo-de-configuración)).
+
 ## El arranque en frío: el refinamiento más importante de esta página
 
-<Aside type="caution" title="Refinamiento técnico sobre Fase 3 de Producto — pendiente de reflejar ahí">
-[Fase 3 de Producto](/producto/flujo/fase-3-prediccion/) dice que la estimación de Capa 2 (reparto por categoría) entra al modelo "como estimación inicial" y que Capa 3 "reemplaza un día" de esa estimación por vez. Leído literalmente, esto sugiere que hay puntos de dato falsos sentados dentro de la serie histórica, siendo reemplazados uno por uno.
+<Aside type="note" title="Cómo se implementa el arranque en frío (Fase 3 de Producto lo explica en palabras simples)">
+[Fase 3 de Producto](/producto/flujo/fase-3-prediccion/) explica que la estimación de Capa 2 (reparto por categoría) es solo el punto de partida del modelo, que el historial guarda únicamente días reales, y que cada día real corrige un poco más al modelo. Esta sección da la versión técnica. Una lectura literal de "reemplazar días de la estimación" sugeriría puntos de dato falsos sentados dentro de la serie histórica; eso es justo lo que **no** se hace.
 
 **La implementación técnicamente correcta es distinta, y mejor**: la estimación de Capa 1/Capa 2 siembra el **estado inicial** del modelo (nivel inicial y estacionalidad inicial) — una creencia de partida — y Holt-Winters corre desde el día 1 **solo sobre los días reales registrados**, alejándose de esa creencia de partida exactamente como α y γ ya están diseñados para hacer.
 
 Esto produce el **mismo comportamiento visible** que describe Producto — la predicción mejora a medida que se acumulan días reales — pero sin el defecto real de la lectura literal: si la estimación plana de categoría se alimentara como puntos de dato repetidos de verdad, le enseñaría al modelo "no existe patrón semanal" y "no existe varianza", diluyendo la señal real de estacionalidad semanal durante semanas y corrompiendo la estimación de varianza de la que depende el umbral mínimo (ver [más abajo](#umbral-mínimo-la-fórmula-real)).
 
-Vale la pena reflejar esto en la redacción de Fase 3 de Producto en algún momento — el texto actual ("reemplaza un día de esa estimación") se lee como sustitución literal de datos, cuando la versión precisa es "reemplaza la creencia inicial, y el modelo corre solo sobre datos reales desde el día 1". Esta página no edita Producto — solo lo señala.
+Producto lo cuenta así: la estimación "pesa poco" a medida que llegan días reales, y después de ~28 días esa estimación ya pesa muy poco. En términos técnicos, la creencia inicial se va diluyendo por el propio suavizado (con γ = 0.2 conserva ~41% del peso a las 4 semanas, ver [Parámetros iniciales](/arquitectura/parametros-iniciales/#por-qué-γ--02-y-no-01)); no se "agota" de golpe en el día 28.
 </Aside>
 
 ## Insumos intermitentes: necesitan un fallback
 
 Insumos de bajo volumen que se compran 2-3 veces por semana (no a diario) hacen que Holt-Winters reparta la demanda de forma pareja entre los 7 días de la semana, causando sobra o falta real — exactamente la falla que el producto existe para evitar.
 
-**Regla de v1**: calcular el promedio de días entre registros no-cero (ADI, *average demand interval*) por insumo. Cuando el ADI es alto (aproximadamente **≥ 9-10 días** entre compras reales, es decir claramente no-diario), ese insumo se enruta a un **promedio de 4 semanas específico por día de la semana**, en vez de Holt-Winters completo — esto preserva naturalmente un patrón como "solo se compra martes y viernes", que el suavizado exponencial borraría.
+**Regla de v1**: calcular el promedio de días entre registros no-cero (ADI, *average demand interval*) por insumo. Cuando el **ADI ≥ 1.32** (en promedio, más de 1.32 días entre días con consumo), ese insumo se enruta a un **promedio de 4 semanas específico por día de la semana**, en vez de Holt-Winters completo — esto preserva naturalmente un patrón como "solo se compra martes y viernes", que el suavizado exponencial borraría.
+
+**Los cierres confirmados se excluyen del cálculo del ADI.** Un cierre no es un día de demanda cero: ese día no hubo oportunidad de que hubiera demanda. Contarlo como cero inflaría el ADI de un insumo de uso diario en un local que cierra varios días, acercándolo al corte sin que el insumo sea realmente irregular.
+
+El 1.32 es el corte estándar de la literatura (Syntetos–Boylan–Croston), no un valor validado con datos de Kilo. Ver [Parámetros iniciales](/arquitectura/parametros-iniciales/) y [Riesgos](/arquitectura/riesgos/).
 
 Esta es una regla simple, con alcance de v1 — no el método de Croston completo, que es una opción válida pero más pesada para v2 si la regla simple resulta insuficiente en el piloto.
 
@@ -49,14 +61,16 @@ Esta es una regla simple, con alcance de v1 — no el método de Croston complet
 
 28 días (4 ciclos semanales) es el mínimo para que el método se pueda inicializar, no un punto donde ya es confiable — esto ya lo dice el [FAQ de Producto](/producto/preguntas-frecuentes/#por-qué-el-arranque-en-frío-dura-exactamente-28-días).
 
-El número que esta página agrega: con **~11 parámetros libres** (nivel, tendencia si se mantiene, 6 índices estacionales independientes, más 2-3 parámetros de suavizamiento) estimados de solo 28 puntos, cada índice de día de la semana se construye con apenas **4 observaciones**. Por eso el patrón agregado de Capa 1 vale más que una conveniencia de arranque en frío — también debería **estabilizar/reducir la varianza de los índices estacionales mismos** durante las primeras semanas, no solo sembrar el reparto inicial.
+El número que esta página agrega: con **~11 parámetros libres** (nivel, tendencia si se mantiene, 6 índices estacionales independientes, más los parámetros de suavizamiento — que en v1 van fijos justamente por esto) estimados de solo 28 puntos, cada índice de día de la semana se construye con apenas **4 observaciones**. Por eso el patrón agregado de Capa 1 vale más que una conveniencia de arranque en frío — también debería **estabilizar/reducir la varianza de los índices estacionales mismos** durante las primeras semanas, no solo sembrar el reparto inicial.
 
 ## Umbral mínimo: la fórmula real
 
-<Aside type="caution" title="Refinamiento técnico sobre Fase 4 de Producto — pendiente de reflejar ahí">
-[Fase 4 de Producto](/producto/flujo/fase-4-recomendador/) describe el umbral mínimo como "un porcentaje de la demanda predicha, por validar en piloto". Un porcentaje plano tiene el problema al revés: el colchón de seguridad debería escalar con **qué tan impredecible es ese insumo específico** (su error de pronóstico, en kg), no con **cuánto se usa**. Un insumo de alto volumen y muy predecible, como el arroz, necesita un colchón chico; uno de bajo volumen y errático, como el culantro, necesita uno relativamente más grande frente a su propio tamaño — y un porcentaje plano lo tiene invertido.
+<Aside type="note" title="Por qué un porcentaje plano estaría al revés">
+[Fase 4 de Producto](/producto/flujo/fase-4-recomendador/) explica el colchón en palabras simples: crece con qué tan mal predice Kilo ese insumo y con los días que faltan hasta la próxima compra. Esta sección da la fórmula.
 
-La forma de la fórmula ya está decidida por esta página; lo único que el piloto debería seguir validando es el valor exacto de `z` (nivel de servicio) — vale la pena reflejar eso en el badge de Fase 4, que hoy marca la fórmula entera como pendiente cuando en realidad solo `z` lo está.
+Un porcentaje plano de la demanda tendría el problema al revés: el colchón de seguridad debería escalar con **qué tan impredecible es ese insumo específico** (su error de pronóstico, en kg), no con **cuánto se usa**. Un insumo de alto volumen y muy predecible, como el arroz, necesita un colchón chico; uno de bajo volumen y errático, como el culantro, necesita uno relativamente más grande frente a su propio tamaño — y un porcentaje plano lo tiene invertido.
+
+La forma de la fórmula ya está decidida; lo único que el piloto sigue validando es el valor de `z` (nivel de servicio), que arranca en 1.28.
 </Aside>
 
 ```text title="Fórmula del umbral mínimo"
@@ -64,8 +78,8 @@ umbral = z × error_típico_de_pronóstico × √(días_hasta_la_próxima_compra
 ```
 
 - **`error_típico_de_pronóstico`**: el error histórico del propio motor de predicción para ese insumo, en kg — algo que el motor ya tiene que calcular para saber qué tan bien le está yendo (ver `model_error_estimate` en [Modelo de datos](/arquitectura/modelo-datos/#predicciones)).
-- **`z`**: un dial de qué tan seguido el dueño está dispuesto a arriesgarse a quedarse sin stock — aproximadamente `z≈1.65` para quedarse sin stock ~1 de cada 20 veces, `z≈1.28` para ~1 de cada 10. <Badge text="Por validar en piloto" variant="caution" />
-- **Piso y techo de v1**: el colchón nunca baja de ~10% ni supera ~60% de la demanda predicha — una salvaguarda para cuando la estimación de error todavía es ruidosa, tan temprano en el historial de un insumo.
+- **`z`**: un dial de qué tan seguido el dueño está dispuesto a arriesgarse a quedarse sin stock — aproximadamente `z≈1.65` para quedarse sin stock ~1 de cada 20 veces, `z≈1.28` para ~1 de cada 10. **Valor inicial: `z = 1.28`.** <Badge text="Por validar en piloto" variant="caution" />
+- **Piso y techo de v1**: el colchón nunca baja de 10% ni supera 60% de la demanda predicha — una salvaguarda para cuando la estimación de error todavía es ruidosa, tan temprano en el historial de un insumo. <Badge text="Provisional — por validar en piloto" variant="caution" /> Se eligió como tope de seguridad, sin una fuente detrás. Una cuenta simple muestra que cubre los casos típicos: ver [cómo se comprobó el rango](/arquitectura/parametros-iniciales/#cómo-se-comprobó-el-rango-del-colchón).
 
 ## Medición de precisión
 

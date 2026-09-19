@@ -1,0 +1,114 @@
+---
+title: Parámetros iniciales
+description: Todos los números con los que arranca Kilo (alertas, colchón de seguridad, corte de intermitencia, suavizado, ventanas) en un solo lugar, con el porqué de cada uno y qué métrica del piloto los mueve.
+sidebar:
+  order: 7
+---
+
+import { Aside, Badge } from '@astrojs/starlight/components';
+
+*Estado: valores iniciales elegidos sin datos propios — el piloto los ajusta.*
+
+Kilo usa varios números para decidir cosas: cuándo avisar de un consumo raro, cuánto colchón dejar al comprar, cuándo tratar un insumo como "de compra irregular". Esta página junta **todos** en un solo lugar.
+
+La razón es simple: si el mismo número está escrito en tres páginas y en el código, tarde o temprano dos versiones dejan de coincidir. Aquí está el valor, el porqué y qué medir para cambiarlo. Producto ([Fase 2](/producto/flujo/fase-2-registro-diario/), [Fase 3](/producto/flujo/fase-3-prediccion/), [Fase 4](/producto/flujo/fase-4-recomendador/)) lo explica en palabras simples; el [Motor de predicción](/arquitectura/motor-prediccion/) explica el mecanismo técnico.
+
+Ninguno de estos valores salió de datos de Kilo, porque todavía no hay datos de Kilo. Salieron de práctica habitual y de cuentas simples (abajo se muestran). Por eso cada fila dice cuándo se cambiaría.
+
+## Tabla de valores
+
+| Parámetro | Valor inicial | Por qué este | Se ajusta si (piloto) |
+|---|---|---|---|
+| Alerta de anomalía | **3×** la mediana de los últimos 14 días (cuando hay 4 muestras del mismo día de la semana, se usa la mediana de ese día) | El consumo diario de un insumo varía 30-50% sin que pase nada raro; 3× deja pasar esa variación normal y atrapa los errores grandes (un "trece" por "tres"). | Más de ~2 alertas por semana por restaurante: subir el multiplicador. Se cuelan errores reales: bajarlo. |
+| Piso de la alerta | No avisa si lo que sobra sobre la mediana vale **menos de S/10** | El valor es `(consumo − mediana) × precio de referencia del insumo`. Al medirlo en soles funciona igual para kilos, litros o unidades, y evita ruido en insumos baratos. | Muchas alertas por cantidades chicas: subir el piso. Errores baratos que sí importan se pierden: bajarlo. |
+| Nivel de servicio `z` | **1.28** (se acepta quedarse sin stock ~1 de cada 10 compras) | Punto de partida razonable para un negocio donde quedarse sin insumo cuesta una venta, pero pasarse cuesta desperdicio. | Muchos días en que falta un insumo: subir a 1.65 (~1 de cada 20). Mucho desperdicio: bajarlo. <Badge text="Por validar en piloto" variant="caution" /> |
+| Piso y techo del colchón | **10%** y **60%** de la demanda predicha <Badge text="Provisional — por validar en piloto" variant="caution" /> | Salvaguarda para cuando la estimación de error todavía es ruidosa. Se eligió como tope de seguridad, sin una fuente detrás. La comprobación de abajo muestra que cubre los casos típicos. | Si el colchón calculado choca seguido contra el piso o el techo, revisar el rango o la forma de estimar el error. |
+| Corte de intermitencia (ADI) | **≥ 1.32** días entre días con consumo, sin contar los cierres confirmados | Es el corte estándar de la literatura (Syntetos–Boylan–Croston). Un cierre confirmado no es una oportunidad de consumo, así que no cuenta como "cero". | Si insumos claramente regulares caen en el promedio por día de la semana (o al revés) y el error sube. Regla práctica de la literatura, no validada en datos de Kilo. |
+| Suavizado de Holt-Winters | **α = 0.2**, **γ = 0.2**, **β = 0** (tendencia apagada), todos fijos | Con solo 28 puntos, ajustar los parámetros a los datos haría que el modelo aprenda el ruido. Ver la nota de γ abajo. | Con 8 o más semanas de historial se puede abrir una búsqueda acotada (máximo 0.3). En v1 no hay búsqueda. |
+| Ventanas | **14** días para la mediana de anomalías, **4** muestras por día de la semana, **28** días de arranque en frío | 28 días son 4 ciclos semanales, el mínimo práctico para que los índices por día de la semana se puedan armar. | Sin cambios previstos para el piloto. |
+| Capa 1 (patrón agregado por tipo de cocina) | Se activa con **al menos 5 restaurantes** del mismo tipo de cocina | Piso de anonimato ya definido en [Modelo de datos](/arquitectura/modelo-datos/#capa-1-agregada). | No se ajusta: con 3-5 restaurantes en el piloto no se activa (ver abajo). |
+
+### Por qué γ = 0.2 y no 0.1
+
+Los índices estacionales (el patrón "los viernes se consume más") se actualizan una vez por semana, no una vez por día. Entonces, después de 4 semanas, la creencia inicial todavía conserva un peso de `(1 − γ)^4`:
+
+- Con γ = 0.1: `0.9^4 ≈ 66%`. Al día 28 el patrón semanal seguiría siendo, en su mayor parte, la suposición plana del inicio.
+- Con γ = 0.2: `0.8^4 ≈ 41%`. Al día 28 ya pesan más los datos reales que la suposición.
+
+Por eso γ = 0.2. Más alto que eso empezaría a seguir el ruido de un solo día.
+
+## Cómo se comprobó el rango del colchón
+
+La fórmula del colchón está en [Motor de predicción](/arquitectura/motor-prediccion/#umbral-mínimo-la-fórmula-real):
+
+```text
+umbral = z × error_típico_de_pronóstico × √(días_hasta_la_próxima_compra)
+```
+
+Para saber si el rango de 10% a 60% de la demanda predicha es razonable, se puede dividir el colchón entre la demanda de esos días. Suponiendo que los errores de cada día son independientes entre sí:
+
+```text
+colchón / demanda predicha = z × cv / √T
+```
+
+donde `cv` es el error diario dividido entre la demanda diaria (qué tan impredecible es el insumo) y `T` son los días hasta la próxima compra. Con `z = 1.28`:
+
+| Caso | cv | T (días) | Colchón / demanda |
+|---|---|---|---|
+| Insumo errático, compra diaria | 0.4 | 1 | ~51% |
+| Insumo errático, compra cada 3 días | 0.4 | 3 | ~30% |
+| Insumo errático, compra semanal | 0.4 | 7 | ~19% |
+| Insumo muy predecible, compra semanal | 0.2 | 7 | ~10% (el piso se activa) |
+
+Los casos típicos caen entre 10% y 60%. Por eso el rango sirve como tope de seguridad. Sigue siendo provisional: los números de `cv` son supuestos, no medidas de Kilo, y el supuesto de errores independientes es una simplificación.
+
+## Capa 1 no se activa en el piloto
+
+La Capa 1 (el patrón agregado y anonimizado por tipo de cocina) solo se calcula cuando hay al menos 5 restaurantes del mismo tipo de cocina con historial real. El piloto tiene 3-5 restaurantes en total, así que no va a alcanzar ese piso.
+
+Consecuencia: todos los restaurantes del piloto usan el **reparto parejo de la Capa 2** para su estimación inicial. El ejemplo de 45/30/25 de [Fase 3](/producto/flujo/fase-3-prediccion/) es una ilustración de cómo funcionaría más adelante, no datos reales.
+
+## Un solo archivo de configuración
+
+Cuando exista código, todos estos valores van en **un solo archivo**, nunca escritos dentro de la lógica. Así cambiar un número es cambiar una línea, y no hay dos versiones del mismo valor.
+
+<Aside type="note" title="Todavía no existe">
+El archivo es una propuesta. Hoy el backend es un stub; el bloque de abajo muestra cómo se vería, no código que ya esté en el repositorio.
+</Aside>
+
+```ts title="src/config/tuning.ts (previsto)"
+export const tuning = {
+	// Alerta de anomalía (Fase 2)
+	anomalyMultiplier: 3, // veces la mediana
+	anomalyMinExcessSoles: 10, // (consumo − mediana) × precio de referencia
+	anomalyWindowDays: 14,
+	weekdaySamples: 4, // muestras del mismo día para usar su propia mediana
+
+	// Colchón de seguridad (Fase 4)
+	safetyZ: 1.28, // ~1 de cada 10 compras sin stock
+	safetyMinPct: 0.1, // provisional
+	safetyMaxPct: 0.6, // provisional
+
+	// Motor de predicción (Fase 3)
+	intermittentAdi: 1.32, // ADI ≥ 1.32 → promedio por día de la semana
+	hw: { alpha: 0.2, beta: 0, gamma: 0.2 }, // fijos en v1
+	coldStartDays: 28,
+} as const;
+```
+
+## Qué se mide en el piloto
+
+Tres métricas dicen si estos valores están bien o hay que moverlos:
+
+1. **Días con un insumo faltante**: días en que un insumo se acabó antes de la siguiente compra.
+2. **Kilos desechados**: insumo vencido o sobrante que de verdad se botó.
+3. **Falsas alertas por restaurante por semana**: avisos de anomalía que el encargado confirmó como correctos ("sí, fue así").
+
+Reglas prácticas para leerlas:
+
+- Más de ~2 alertas de anomalía por semana por restaurante: subir el multiplicador.
+- Se cuelan errores reales: bajar el multiplicador.
+- Falta insumo seguido: subir `z` a 1.65.
+- Mucho desperdicio: bajar `z`.
+
+Cualquier cambio se hace en el archivo de configuración y se anota aquí, con el motivo.

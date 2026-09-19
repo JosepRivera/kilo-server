@@ -58,7 +58,7 @@ sequenceDiagram
     API->>DB: INSERT job_runs (fecha, restricción única) — no-op si ya corrió hoy
     loop por cada restaurante activo
         API->>DB: SELECT historial de daily_consumption del restaurante
-        alt insumo intermitente (ADI ≥ ~9-10 días)
+        alt insumo intermitente (ADI ≥ 1.32)
             API->>API: Fallback — promedio de 4 semanas por día de semana
         else insumo con historial suficiente
             API->>API: Ajuste Holt-Winters (nivel, estacionalidad; tendencia β=0)

@@ -9,6 +9,12 @@ import mermaid from 'astro-mermaid';
 export default defineConfig({
 	site: 'https://kilo-docs-mu.vercel.app',
 	adapter: vercel(),
+	vite: {
+		build: {
+			// Mermaid's lazy chunks (~660 kB) only load on pages with diagrams.
+			chunkSizeWarningLimit: 1000,
+		},
+	},
 	integrations: [
 		mermaid({
 			theme: 'neutral',
@@ -57,6 +63,7 @@ export default defineConfig({
 						{ label: 'Piezas del sistema', slug: 'arquitectura/piezas-sistema' },
 						{ label: 'Modelo de datos', slug: 'arquitectura/modelo-datos' },
 						{ label: 'Motor de predicción', slug: 'arquitectura/motor-prediccion' },
+						{ label: 'Parámetros iniciales', slug: 'arquitectura/parametros-iniciales' },
 						{ label: 'Pipeline de voz', slug: 'arquitectura/pipeline-voz' },
 						{ label: 'Flujos en ejecución', slug: 'arquitectura/flujos-ejecucion' },
 						{ label: 'Despliegue', slug: 'arquitectura/despliegue' },
