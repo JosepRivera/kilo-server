@@ -11,7 +11,6 @@ export default defineConfig({
 	adapter: vercel(),
 	vite: {
 		build: {
-			// Mermaid's lazy chunks (~660 kB) only load on pages with diagrams.
 			chunkSizeWarningLimit: 1000,
 		},
 	},
