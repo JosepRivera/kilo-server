@@ -21,15 +21,15 @@ Un cierre real (consumo cero, marcado como tal en [Fase 2](/producto/flujo/fase-
 
 ## Arranque en frío (cold start): sistema de 3 capas
 
-Durante los primeros ~28 días, un insumo todavía no tiene suficiente historial propio. Kilo resuelve esto con tres capas que trabajan juntas.
+Durante los primeros ~28 días, un insumo todavía no tiene suficiente historial propio. Kilo resuelve esto con tres capas que trabajan juntas. Algo importante: el historial **solo guarda días reales**. La estimación inicial nunca se escribe ahí como si fuera consumo de verdad.
 
 <Aside type="tip" title="Resumen rápido de las 3 capas">
 - **Capa 2**: reparte el gasto declarado por categoría de forma pareja entre los insumos de esa categoría, como **estimación inicial**.
-- **Capa 3** (el mecanismo central): cada día real que llega reemplaza un día de esa estimación inicial, hasta acumular ~28 días reales.
+- **Capa 3** (el mecanismo central): la estimación es solo el **punto de partida** del modelo, no se anota en el historial como si fuera consumo real. Cada día real que llega corrige un poco más al modelo, y la estimación pesa cada vez menos. Después de ~28 días reales, esa estimación **ya pesa muy poco**.
 - **Capa 1** (mejora automática con el tiempo, no es una funcionalidad separada a construir): una vez que hay varios restaurantes del **mismo tipo de cocina** con historial real, ese patrón agregado y anonimizado se usa para hacer más inteligente el reparto inicial de la Capa 2 de un restaurante nuevo — nunca para reemplazar datos reales ya existentes.
 </Aside>
 
-![Diagrama de línea de tiempo del arranque en frío, día 0 a día 28: una barra pasa de 100% estimado (gris) a 100% real (verde) en una diagonal, con la Capa 2 marcando el reparto inicial en el día 0, la Capa 3 abarcando todo el reemplazo día a día, y la Capa 1 afinando específicamente el reparto del día 0](../../../../assets/cold-start-timeline-diagram.png)
+![Diagrama de línea de tiempo del arranque en frío, día 0 a día 28: una barra que muestra cuánto se apoya el modelo en la estimación inicial (gris) frente a los datos reales (verde), pasando de todo estimación a todo datos reales en una diagonal, con la Capa 2 marcando el reparto inicial en el día 0, la Capa 3 abarcando la corrección día a día, y la Capa 1 afinando específicamente el reparto del día 0](../../../../assets/cold-start-timeline-diagram.png)
 
 ### Ejemplo completo: Restaurante #1 — "El Buen Sazón" (el primero de la plataforma)
 
@@ -40,9 +40,9 @@ Al no existir ningún otro restaurante del mismo tipo de cocina en la plataforma
 - Estimación inicial por insumo: se reparte el gasto de la categoría entre sus insumos por igual — **S/3000 ÷ 3 insumos = S/1000 cada uno**, convertido a una cantidad diaria estimada según precio unitario de referencia.
 
 <Steps>
-1. **Día 1**: llega el primer dato real de consumo de pollo. Ese día deja de usar la estimación de la Capa 2 y usa el dato real (Capa 3: 1 de 28 días reemplazado).
-2. **Días 2 a 27**: cada día que pasa con un registro real reemplaza, uno por uno, otro día de la estimación inicial. El insumo pollo va acumulando cada vez más señal real y cada vez menos dependencia de la estimación pareja inicial.
-3. **Día 28**: se completan **4 ciclos semanales** de datos reales. A partir de aquí, el insumo pollo de "El Buen Sazón" se considera con historial **totalmente real**, sin ninguna estimación de arranque en frío restante.
+1. **Día 1**: llega el primer dato real de consumo de pollo. El historial de pollo tiene ahora 1 día real, y el modelo lo usa para corregir la estimación de la Capa 2, que sigue siendo su punto de partida (Capa 3: 1 de 28 días reales).
+2. **Días 2 a 27**: cada día que pasa con un registro real corrige un poco más al modelo. El insumo pollo va acumulando cada vez más señal real, y la estimación pareja inicial pesa cada vez menos.
+3. **Día 28**: se completan **4 ciclos semanales** de datos reales. A partir de aquí, el historial del insumo pollo de "El Buen Sazón" es **totalmente real**, y el modelo ya no depende de la estimación de arranque en frío.
 </Steps>
 
 ### Meses después: Restaurante #50 — "La Cusqueñita" (mismo tipo de cocina) <Badge text="Por validar en piloto" variant="caution" />
@@ -67,6 +67,8 @@ Ese patrón agregado tiene tres límites estrictos:
 | Res | 30% | S/720 |
 | Pescado | 25% | S/600 |
 
-A partir de aquí, "La Cusqueñita" pasa por el **mismo proceso de Capa 3** que "El Buen Sazón": día 1 a día 27, cada registro real reemplaza un día de la estimación inicial, hasta llegar al día 28 con historial totalmente real por insumo.
+Esta capa necesita al menos **5 restaurantes del mismo tipo de cocina** con historial real, así que **no va a estar activa durante el piloto**: los porcentajes de arriba son una ilustración, no datos reales.
 
-28 días son **4 ciclos semanales**, el mínimo práctico para que Holt-Winters tenga índices estacionales medianamente estables — no significa "modelo maduro" ni "~100% de confianza", solo que ya no queda estimación de arranque en frío en el historial de ese insumo.
+A partir de aquí, "La Cusqueñita" pasa por el **mismo proceso de Capa 3** que "El Buen Sazón": día 1 a día 27, cada registro real corrige un poco más al modelo y la estimación inicial pesa menos, hasta llegar al día 28 con historial totalmente real por insumo.
+
+28 días son **4 ciclos semanales**, el mínimo práctico para que Holt-Winters tenga índices estacionales medianamente estables — no significa "modelo maduro" ni "~100% de confianza", solo que el modelo ya no depende de la estimación de arranque en frío para ese insumo.

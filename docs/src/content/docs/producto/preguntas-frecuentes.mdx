@@ -51,7 +51,7 @@ Son tres decisiones distintas, cada una por una razón concreta (ver [Fase 2](/p
 
 - **Por qué un umbral alto y no 50%**: el consumo diario de un insumo varía 30-50% entre un día y otro sin que pase nada raro. Un umbral de 50% avisaría casi a diario en los insumos de poco volumen, y el encargado de compras terminaría confirmando a ciegas — así es como un aviso se vuelve ruido que nadie lee.
 - **Por qué mediana y no promedio**: un solo día raro (una reposición mal registrada) arrastra el promedio hacia arriba, y con el promedio ya inflado deja de detectar el siguiente día raro. La mediana aguanta ese dato suelto.
-- **Por qué además un piso mínimo**: un porcentaje solo se equivoca en los dos extremos — 50% sobre 3 kg es ruido, 50% sobre 40 kg es un error real que sí hay que atrapar.
+- **Por qué además un piso mínimo**: un porcentaje solo se equivoca en los dos extremos — 50% sobre 3 kg es ruido, 50% sobre 40 kg es un error real que sí hay que atrapar. El piso se mide en soles (lo que excede lo normal × el precio del insumo, unos S/10), así que funciona igual para kilos, litros o unidades.
 
 ### ¿Cómo se ajusta el control por día de la semana?
 
@@ -79,7 +79,7 @@ Porque ocurre en otro momento del día: el cierre se dicta al cerrar la noche, l
 
 Porque 28 días son **4 ciclos semanales**, no uno. Holt-Winters con estacionalidad semanal necesita 2 ciclos completos (14 días) solo para arrancar los índices de cada día de la semana, y la práctica estándar pide 3-4 ciclos antes de que esos índices sean mínimamente estables. Por eso 28 días es el piso defendible para el MVP (producto mínimo viable, la primera versión funcional).
 
-No significa que el modelo ya esté maduro: para índices genuinamente estables sobre datos ruidosos de restaurante, lo deseable serían 8-12 semanas. Y tampoco significa "~100% de confianza" — significa exactamente una cosa: que ya no queda ninguna estimación de arranque en frío en el historial de ese insumo (ver [Fase 3](/producto/flujo/fase-3-prediccion/)).
+No significa que el modelo ya esté maduro: para índices genuinamente estables sobre datos ruidosos de restaurante, lo deseable serían 8-12 semanas. Y tampoco significa "~100% de confianza" — significa exactamente una cosa: que el modelo ya no depende de la estimación de arranque en frío para ese insumo (ver [Fase 3](/producto/flujo/fase-3-prediccion/)).
 
 ### ¿Por qué un día estimado pesa igual que uno real en Holt-Winters?
 

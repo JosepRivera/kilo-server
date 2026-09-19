@@ -24,11 +24,11 @@ Cada noche, el encargado de compras graba un audio corto diciendo **cuánto stoc
 
 ## Control de anomalías
 
-El control de anomalías marca **"revisar"** en el resumen antes de guardar cuando el consumo de un insumo supera aproximadamente **2.5-3× la mediana de sus últimos 14 días** <Badge text="Por validar en piloto" variant="caution" />.
+El control de anomalías marca **"revisar"** en el resumen antes de guardar cuando el consumo de un insumo supera **3× la mediana de sus últimos 14 días** <Badge text="Por validar en piloto" variant="caution" />.
 
-Lo que se evalúa es el **consumo derivado** (ver [cálculo de consumo](#cálculo-de-consumo-por-insumo) abajo), nunca el stock crudo que se dictó. Cada insumo tiene además un **piso mínimo**: por debajo de esa cantidad no se dispara el aviso, para que las cantidades chicas no generen ruido constante.
+Lo que se evalúa es el **consumo derivado** (ver [cálculo de consumo](#cálculo-de-consumo-por-insumo) abajo), nunca el stock crudo que se dictó. Además hay un **piso**: el aviso no se dispara si lo que excede lo normal vale menos de unos **S/10** (la cantidad por encima de la mediana × el precio de referencia del insumo), para que las cantidades chicas y baratas no generen ruido constante. <Badge text="Por validar en piloto" variant="caution" />
 
-**Ejemplo:** si la mediana de consumo de pollo es **4 kg/día**, el umbral queda en **10-12 kg**. Un consumo derivado de **13 kg** lo supera, así que se marca:
+**Ejemplo:** si la mediana de consumo de pollo es **4 kg/día**, el umbral queda en **12 kg**. Un consumo derivado de **13 kg** lo supera, y ese exceso de pollo vale bastante más de S/10, así que se marca:
 
 > "Según lo que dictaste, hoy se consumieron 13 kg de pollo; normalmente son unos 4 kg. ¿Es correcto?"
 

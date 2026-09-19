@@ -14,8 +14,10 @@ cantidad a comprar = demanda predicha + umbral mínimo − stock actual
 ```
 
 - **Demanda predicha**: la proyección de Holt-Winters para los días que faltan hasta la próxima compra de esa categoría (el intervalo de compra se declara por categoría, no como un solo número global — ver [Fase 1](/producto/flujo/fase-1-configuracion-inicial/)).
-- **Umbral mínimo**: colchón de seguridad calculado automáticamente como un **porcentaje de la demanda predicha** de ese insumo <Badge text="Por validar en piloto" variant="caution" /> — no lo declara el dueño insumo por insumo, para no repetir la misma fricción manual que ya se evitó en el resto del catálogo (ver [Fase 1](/producto/flujo/fase-1-configuracion-inicial/)).
+- **Umbral mínimo**: un colchón de seguridad que Kilo calcula solo para cada insumo. Es más grande para un insumo que Kilo predice peor, y cuando faltan más días hasta la próxima compra; es más chico para uno muy predecible. Un porcentaje plano haría lo contrario: demasiado colchón para el arroz y muy poco para el culantro. No lo declara el dueño insumo por insumo, para no repetir la misma fricción manual que ya se evitó en el resto del catálogo (ver [Fase 1](/producto/flujo/fase-1-configuracion-inicial/)). Lo único que se ajusta con el piloto es qué tan seguido se acepta quedarse sin stock (al inicio, 1 de cada 10 compras) <Badge text="Por validar en piloto" variant="caution" />.
 - **Stock actual**: el último dato de stock remanente registrado.
+
+**Ejemplo con pollo:** hasta la próxima compra faltan 3 días y Kilo predice que se van a consumir **30 kg**. En un día típico, Kilo se equivoca por unos **4 kg**. Con eso, el colchón sale de 1.28 × 4 × √3 ≈ **8.9 kg** (cerca de 30% de lo predicho). Si hoy quedan **12 kg**, la compra es 30 + 8.9 − 12 ≈ **26.9 kg**.
 
 ## Alertas de vencimiento por lote (FIFO)
 
