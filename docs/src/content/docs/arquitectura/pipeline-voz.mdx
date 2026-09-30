@@ -49,7 +49,7 @@ Claude Haiku vía **salidas estructuradas/restringidas contra un JSON schema**, 
 ## Manejo de audio
 
 - **Grabado en segmentos cortos** — así una dictado interrumpido (entra una llamada, se cierra la app) solo pierde el segmento actual, no la grabación completa.
-- **Persistido a SQLite local** a medida que cada segmento se completa — este es el mecanismo real detrás del "retoma donde quedó" que ya describe el [FAQ de Producto](/producto/preguntas-frecuentes/#qué-pasa-si-la-grabación-del-cierre-se-interrumpe-a-la-mitad).
+- **Persistido a SQLite local** a medida que cada segmento se completa — este es el mecanismo real detrás del "retoma donde quedó" que ya describe el [Fase 2 de Producto](/producto/flujo/fase-2-registro-diario/).
 - **Subido entero, comprimido** — no en streaming. Esto es dictar-y-revisar, no una conversación en vivo, así que streaming compraría latencia que el producto no necesita, a cambio de exactamente la fragilidad que se rompe con datos móviles peruanos.
 - **Mono, ~16kHz, ~32kbps AAC** — suficiente para voz, y barato: un dictado de 45 segundos son aproximadamente **180KB**; a ~S/1/GB de datos prepago, dos dictados al día cuestan aproximadamente **un céntimo al mes** — el costo de datos no es un problema real.
 

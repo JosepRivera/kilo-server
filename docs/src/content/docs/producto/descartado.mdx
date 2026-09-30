@@ -9,14 +9,6 @@ Esta página junta todo lo que Kilo evaluó y decidió **no** construir (por aho
 
 - **TPCA del INS/MINSA** (tabla de composición de alimentos) como fuente del catálogo — se evaluó, pero es una tabla pensada para composición nutricional, no para el lenguaje de compra real de un restaurante: no distingue variedades comerciales ni usa los nombres que un encargado de compras realmente dice en voz alta — [ver contexto](/producto/flujo/fase-1-configuracion-inicial/).
 
-## Registro diario y manejo de huecos
-
-- **Depender únicamente de un botón diario manual** para cierres recurrentes (ej. "cerrado los domingos") — descartado como único mecanismo, por el riesgo real de que el encargado de compras se olvide de marcarlo cada semana; se complementa con una regla de cierre recurrente configurable, que un registro de voz real siempre anula para una fecha puntual — [ver contexto](/producto/flujo/fase-2-registro-diario/).
-
-## Registro de compra
-
-- **Promedio ponderado por cantidad** para el costo cuando hay dos compras del mismo insumo el mismo día a precios distintos — descartado; como cada compra ya se registra como su propio lote (fecha + cantidad + costo), dos compras del mismo día a precios distintos se tratan simplemente como dos lotes separados, el mismo mecanismo ya usado para compras en días distintos, sin caso especial ni pérdida de precisión — [ver contexto](/producto/flujo/fase-5-registro-compra/).
-
 ## Predicción y cold-start
 
 - **Mezclar datos reales de un restaurante con los de otro, o sustituir predicciones reales día a día con datos agregados de Capa 1** — nunca ocurre, ni siquiera cuando existe patrón agregado disponible para ese tipo de cocina; el dato agregado solo mejora la primera estimación inicial a ciegas — [ver contexto](/producto/flujo/fase-3-prediccion/).
@@ -28,4 +20,5 @@ Esta página junta todo lo que Kilo evaluó y decidió **no** construir (por aho
 ## Alcance del producto
 
 - **Detección automática de pagos vía notificaciones del teléfono**: leer las notificaciones del teléfono (por ejemplo de Yape/Plin) para inferir automáticamente una compra fue descartado — en Android implica pedir un permiso de alto riesgo (acceso a notificaciones del sistema) difícil de justificar y de aprobar; en iOS es directamente imposible por las restricciones de la plataforma. No se construye — [ver contexto](/producto/vision-general/).
-- **Automatizar pedidos a proveedores vía WhatsApp**: automatizar el envío del pedido de compra directamente a un proveedor por WhatsApp fue descartado porque la mayoría de restaurantes pequeños en Lima no tienen un proveedor fijo — compran en el mercado mayorista o a distintos proveedores según disponibilidad y precio del día. Automatizar un flujo que asume un proveedor fijo no encaja con la realidad operativa de este segmento — [ver contexto](/producto/vision-general/).
+- **Automatizar pedidos a proveedores vía WhatsApp**: automatizar el envío del pedido de compra directamente a un proveedor por WhatsApp fue descartado porque muchos restaurantes pequeños en Lima no tienen un proveedor fijo — compran en el mercado mayorista o a distintos proveedores según disponibilidad y precio del día. Automatizar un flujo que asume un proveedor fijo no encaja con buena parte de este segmento — [ver contexto](/producto/vision-general/).
+- **Versión web**: una versión de Kilo en el navegador fue descartada. El registro por voz es el flujo más crítico del producto y la grabación de audio en navegadores móviles (en particular Safari en iOS) tiene limitaciones que complican un registro confiable. Además, el encargado de compras dicta desde el celular, en la cocina o al volver del mercado. Kilo se construye solo como app nativa — [ver contexto](/producto/vision-general/).

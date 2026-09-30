@@ -9,21 +9,9 @@ Esta página junta el razonamiento ("¿por qué?") y los casos límite ("¿qué 
 
 ### ¿Existe una cifra confiable de cuánto desperdicia un restaurante en Perú?
 
-Se investigó a fondo (septiembre 2026) y la respuesta es **no** — no existe ninguna cifra peruana con metodología detrás. Nadie oficial la publicó: ni el Estado (MIDAGRI, MINAM, INEI, SUNAT, PRODUCE), ni la Ley 30988, ni el Banco de Alimentos Perú, ni los gremios del sector. La academia peruana estudia otra cosa (residuos para biogás, comportamiento del consumidor), no la merma de cocina como % del costo de insumos.
+No. Se investigó a fondo (septiembre 2026) y ninguna fuente oficial, académica ni gremial peruana publica una cifra con metodología. Las que circulan (el "5-12%" de PANCA, el "4-10%" de la National Restaurant Association, el "~17% global" del PNUMA) no tienen estudio detrás o miden otra cosa.
 
-Las cifras que circulan tampoco resisten el rastreo:
-
-- **"5-12%" (PANCA)**: blog sin fuente citada, y la misma empresa se contradice con otro artículo que da 5-10% — dos números distintos, ninguno con estudio detrás.
-- **"4-10%" (National Restaurant Association, EE.UU.)**: la publicación atribuye la cifra a un director de marketing de LeanPath, un proveedor de software de control de desperdicio — una cita de alguien vendiendo la solución, no una medición.
-- **"~17% global"**: no es de la FAO, es del *Food Waste Index Report* del PNUMA, y mide desperdicio de consumidor (hogares + retail), no merma de cocina. Su dato de Perú más reciente (2024) solo cubre hogares.
-
-Lo único con metodología real y citable: **WRAP** (Reino Unido, 2013) — más de 20% del peso comprado se desperdicia en restaurantes/pubs, 66% de eso antes de llegar al comensal — y **Champions 12.3** (2019) — la mediana de 114 restaurantes en 12 países recupera US$7 por cada US$1 invertido en reducir desperdicio. Ninguno es de Lima, pero son las referencias reales más cercanas que existen.
-
-Kilo no repite ninguna de estas cifras como si fuera un dato de Lima (ver [Visión general](/producto/vision-general/)).
-
-### ¿Por qué mencionan POS y RUC si Kilo no los necesita?
-
-Kilo funciona igual tenga el restaurante POS (sistema de punto de venta) o RUC (Registro Único de Contribuyente) o no — no depende de ninguno de los dos para operar. Se mencionan porque son la señal de qué tan informal es el negocio objetivo, no un requisito del producto. Un restaurante con POS también podría usar Kilo sin problema técnico; simplemente ya no sería el segmento desatendido que el producto prioriza para el piloto (ver [Visión general](/producto/vision-general/)).
+Lo único con metodología real son dos referencias extranjeras: **WRAP** (Reino Unido, 2013), donde más de 20% del peso comprado se desperdicia en restaurantes y pubs, y **Champions 12.3** (2019), donde la mediana de 114 restaurantes en 12 países recupera US$7 por cada US$1 invertido en reducir desperdicio. Ninguna es de Lima, por eso Kilo no presenta ninguna cifra como dato local (ver [Visión general](/producto/vision-general/)).
 
 ## Registro diario y huecos
 
@@ -31,47 +19,15 @@ Kilo funciona igual tenga el restaurante POS (sistema de punto de venta) o RUC (
 
 Se atribuye al día que recién está cerrando, no al que empieza — igual que ya funciona el "día de negocio" de cualquier bar o restaurante que cierra tarde. No hace falta definir un umbral nuevo para esto: se reutiliza el mismo corte que ya existe para el proceso nocturno de Holt-Winters (~5-6am hora Perú, ver [Fase 3](/producto/flujo/fase-3-prediccion/)) — una grabación hecha entre medianoche y esa hora de corte cuenta para el día anterior.
 
-### ¿Qué pasa si abre un domingo marcado como cerrado?
-
-Nada se rompe. Un registro de voz real ese día siempre tiene prioridad sobre la regla recurrente, así que ese día queda con el dato real, no en cero — la regla recurrente es solo un valor por defecto automático, nunca descarta un dato real cuando existe (ver [Fase 2](/producto/flujo/fase-2-registro-diario/)).
-
 ### ¿Qué pasa si un cierre real no queda cubierto por ninguna regla?
 
 Supongamos que el local estuvo cerrado martes y miércoles sin marcar ningún botón ni regla, y el jueves se registra un consumo alto porque se repuso todo el stock de golpe. El sistema no tiene cómo saber que esos días no hubo actividad: ve un hueco de 3 días y reparte el consumo del jueves entre los tres por igual.
 
 Nada da error, pero el patrón de ese día de la semana queda distorsionado. Si pasa seguido — el mismo día cada semana — el modelo aprende mal ese día. Por eso conviene declarar una regla recurrente cuando el cierre es predecible (ver [Fase 2](/producto/flujo/fase-2-registro-diario/)).
 
-### ¿Por qué se evalúa el consumo derivado y no el stock dictado?
-
-Comparar el stock dictado contra un promedio histórico daría falsos positivos garantizados: todo día de reposición deja el stock legítimamente muy por encima de cualquier promedio móvil, sin que haya ningún error. Por eso se calcula sobre el consumo derivado (stock de ayer menos stock de hoy), nunca sobre el número crudo que se dictó (ver [Fase 2](/producto/flujo/fase-2-registro-diario/)).
-
 ### ¿Por qué mediana de 14 días y no un promedio?
 
-Son tres decisiones distintas, cada una por una razón concreta (ver [Fase 2](/producto/flujo/fase-2-registro-diario/)):
-
-- **Por qué un umbral alto y no 50%**: el consumo diario de un insumo varía 30-50% entre un día y otro sin que pase nada raro. Un umbral de 50% avisaría casi a diario en los insumos de poco volumen, y el encargado de compras terminaría confirmando a ciegas — así es como un aviso se vuelve ruido que nadie lee.
-- **Por qué mediana y no promedio**: un solo día raro (una reposición mal registrada) arrastra el promedio hacia arriba, y con el promedio ya inflado deja de detectar el siguiente día raro. La mediana aguanta ese dato suelto.
-- **Por qué además un piso mínimo**: un porcentaje solo se equivoca en los dos extremos — 50% sobre 3 kg es ruido, 50% sobre 40 kg es un error real que sí hay que atrapar. El piso se mide en soles (lo que excede lo normal × el precio del insumo, unos S/10), así que funciona igual para kilos, litros o unidades.
-
-### ¿Cómo se ajusta el control por día de la semana?
-
-Comparar un viernes contra una mediana que mezcla martes y viernes avisaría de más todos los días de mayor volumen, sin que haya ningún error real.
-
-Por eso, apenas hay 4 muestras del mismo día de la semana (lo que da el arranque en frío de 28 días — ver [Fase 3](/producto/flujo/fase-3-prediccion/)), el umbral se calcula contra la mediana de **ese mismo día**, no contra los 14 días mezclados. Antes de esas 4 muestras se usa la mediana general como respaldo: avisa de más, pero solo durante el arranque.
-
-### ¿Qué pasa si la grabación del cierre se interrumpe a la mitad?
-
-Nada se pierde: todas las entradas dictadas quedan en un estado "borrador" persistido localmente hasta que se confirma el resumen completo. Si la sesión se interrumpe (una llamada entra, se cierra la app), el borrador se retoma donde quedó, no se reinicia desde cero (ver [Fase 2](/producto/flujo/fase-2-registro-diario/)).
-
-## Registro de compra
-
-### ¿Y si compro el mismo insumo dos veces en un día?
-
-Cada compra ya se registra como su propio lote (fecha + cantidad + costo), así que dos compras el mismo día a precios distintos se tratan simplemente como dos lotes separados — el mismo mecanismo que ya se usa para compras en días distintos, sin ningún caso especial. No hace falta ningún cálculo de promedio ponderado ni se pierde precisión: cada lote conserva su propio costo real (ver [Fase 5](/producto/flujo/fase-5-registro-compra/)).
-
-### ¿Por qué la compra es una fase aparte del cierre?
-
-Porque ocurre en otro momento del día: el cierre se dicta al cerrar la noche, la compra al volver del mercado. Además registra datos distintos — qué se compró, cuánto y a qué costo, no cuánto queda — y es lo que crea los lotes que hacen posibles las alertas de vencimiento. Tenerlo metido dentro del cierre diario hacía parecer que el ciclo empezaba por la compra, cuando en realidad la cierra (ver [Fase 5](/producto/flujo/fase-5-registro-compra/)).
+Un solo día raro (una reposición mal registrada) infla el promedio y hace que deje de detectar el siguiente; la mediana aguanta ese dato suelto. El umbral es alto (3×) porque el consumo diario varía 30-50% sin que pase nada, y un aviso frecuente termina confirmado a ciegas. El piso de unos S/10 evita avisar por cantidades pequeñas y baratas (ver [Fase 2](/producto/flujo/fase-2-registro-diario/)).
 
 ## Predicción
 
@@ -84,10 +40,6 @@ No significa que el modelo ya esté maduro: para índices genuinamente estables 
 ### ¿Por qué un día estimado pesa igual que uno real en Holt-Winters?
 
 Ponderar días estimados con menos peso (suavizamiento exponencial ponderado) es una extensión real y conocida del método, pero implementar una ponderación por observación individual requiere una implementación de Holt-Winters no estándar — la mayoría de librerías listas para usar no lo soportan de forma nativa. Es una complejidad desproporcionada para un piloto de 3-5 restaurantes, así que queda como mejora de v2, no como alcance del MVP (ver [Fase 2](/producto/flujo/fase-2-registro-diario/)).
-
-### ¿Por qué asumir FIFO si la cocina no lo sigue?
-
-Si la práctica real en cocina no coincide exactamente con FIFO (se consume primero lo más viejo), la cifra total de soles perdidos al mes sigue siendo precisa: está determinada por el stock total remanente frente al consumo esperado, no por el orden de uso. Lo único que podría ser impreciso es a qué lote específico se atribuye una alerta puntual, no el total de desperdicio (ver [Fase 4](/producto/flujo/fase-4-recomendador/)).
 
 ### ¿Cómo se calcula y muestra el "ahorro visible" al encargado de compras?
 
