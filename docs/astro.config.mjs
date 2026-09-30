@@ -30,6 +30,7 @@ export default defineConfig({
 			pagefind: { ranking: { diacriticSimilarity: 0.8 } },
 			head: [
 				{ tag: 'link', attrs: { rel: 'stylesheet', href: '/ask-widget.css' } },
+				{ tag: 'link', attrs: { rel: 'stylesheet', href: '/theme-images.css' } },
 				{ tag: 'script', attrs: { src: '/ask-widget.js', defer: true } },
 			],
 			plugins: [

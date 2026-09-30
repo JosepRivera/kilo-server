@@ -12,7 +12,8 @@ En Lima, la gran mayoría de dueños de restaurantes pequeños y medianos compra
 - **Sobra insumo** → se vence o se desperdicia.
 - **Falta insumo** → un plato sale del menú, se pierde la venta y, en el peor caso, el cliente se va insatisfecho y no vuelve.
 
-![Las dos fallas que ataca Kilo: a la izquierda, insumos vencidos que van a la basura con el dinero que costaron; a la derecha, un plato vacío y un ítem del menú tachado, la venta que se pierde cuando falta insumo](../../../assets/two-failures.png)
+![Las dos fallas que ataca Kilo: a la izquierda, insumos vencidos que van a la basura con el dinero que costaron; a la derecha, un plato vacío y un ítem del menú tachado, la venta que se pierde cuando falta insumo](../../../assets/two-failures-light.png)
+![Las dos fallas que ataca Kilo: a la izquierda, insumos vencidos que van a la basura con el dinero que costaron; a la derecha, un plato vacío y un ítem del menú tachado, la venta que se pierde cuando falta insumo](../../../assets/two-failures-dark.png)
 
 Ninguna de las dos fallas es visible en el momento en que ocurre: el dueño solo nota el patrón (si lo nota) al final del mes, cuando ya es tarde para corregir esa compra — y para entonces no sabe cuánto perdió, solo que perdió.
 
@@ -24,7 +25,7 @@ Kilo tampoco conecta a dos grupos entre sí — no junta restaurantes con provee
 
 ## La solución
 
-Kilo es una **app multiplataforma** (Android, iOS y también Web desde el mismo código base) que:
+Kilo es una **app móvil nativa** para Android e iOS que:
 
 1. Registra el consumo diario de insumos por voz, sin tener que llenar formularios.
 2. Alimenta un **motor de predicción de demanda** (Holt-Winters, un método estadístico de pronóstico — ver [Fase 3 — Procesamiento nocturno](/producto/flujo/fase-3-prediccion/)) que aprende el patrón semanal real de cada restaurante.

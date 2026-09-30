@@ -1,0 +1,11 @@
+:root[data-theme='dark'] img[src*='-light.'] { display: none; }
+:root:not([data-theme='dark']) img[src*='-dark.'] { display: none; }
+
+.sl-markdown-content img[src*='catalog-search-screen'],
+.sl-markdown-content img[src*='purchase-list-alerts'] {
+	display: block;
+	width: 100%;
+	max-width: 20rem;
+	height: auto;
+	margin-inline: auto;
+}
