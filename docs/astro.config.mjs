@@ -21,6 +21,7 @@ export default defineConfig({
 		}),
 		starlight({
 			title: 'Kilo Docs',
+			logo: { src: './src/assets/kilo-logo.png', alt: 'Kilo' },
 			description:
 				'Documentación de producto de Kilo — predicción de demanda de insumos y recomendación de compras para restaurantes pequeños y medianos en Lima.',
 			locales: { root: { label: 'Español', lang: 'es' } },
