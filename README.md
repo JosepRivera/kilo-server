@@ -30,7 +30,7 @@ La API queda en http://localhost:3000
 
 ## Documentación del producto
 
-La documentación completa (flujo operativo, arquitectura, decisiones de producto) vive en [`docs/`](./docs) y se levanta aparte:
+La documentación completa (flujo operativo, decisiones de producto) vive en [`docs/`](./docs) y se levanta aparte:
 
 ```bash
 cd docs
