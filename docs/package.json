@@ -1,17 +1,15 @@
 {
-  "name": "docs",
+  "name": "kilo-docs",
   "type": "module",
-  "version": "0.0.1",
+  "private": true,
   "scripts": {
     "dev": "astro dev",
     "build": "astro build"
   },
   "dependencies": {
-    "@astrojs/starlight": "^0.42.4",
-    "@astrojs/vercel": "^11.0.11",
-    "astro": "^7.3.5",
-    "astro-mermaid": "^2.1.0",
-    "mermaid": "12.0.0",
+    "@astrojs/starlight": "^0.42.6",
+    "@astrojs/vercel": "^11.0.13",
+    "astro": "^7.3.8",
     "sharp": "^0.35.5",
     "starlight-llms-txt": "^0.12.0",
     "starlight-page-context-action": "^0.4.3",
