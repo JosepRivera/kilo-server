@@ -2,10 +2,10 @@
 	"name": "kilo-server",
 	"version": "0.1.0",
 	"scripts": {
-		"dev": "bun run --watch src/index.ts",
-		"start": "bun run src/index.ts",
-		"test": "bun test",
-		"typecheck": "tsc --noEmit",
+		"dev": "docker compose up --build --watch",
+		"stop": "docker compose down",
+		"clean": "docker compose down --volumes --rmi local --remove-orphans",
+		"docker:start": "bun run src/db/migrate.ts && bun run src/index.ts",
 		"db:generate": "drizzle-kit generate"
 	},
 	"dependencies": {
