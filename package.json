@@ -1,18 +1,20 @@
 {
-  "name": "kilo-server",
-  "version": "0.1.0",
-  "scripts": {
-    "dev": "bun run --watch src/index.ts",
-    "start": "bun run src/index.ts",
-    "test": "bun test",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "elysia": "1.4.30"
-  },
-  "devDependencies": {
-    "bun-types": "1.4.2"
-  },
-  "module": "src/index.ts",
-  "private": true
+	"name": "kilo-server",
+	"version": "0.1.0",
+	"scripts": {
+		"dev": "bun run --watch src/index.ts",
+		"start": "bun run src/index.ts",
+		"test": "bun test",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"elysia": "1.4.30"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.5.15",
+		"@types/bun": "^1.4.3",
+		"typescript": "^7.0.2"
+	},
+	"module": "src/index.ts",
+	"private": true
 }

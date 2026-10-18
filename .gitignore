@@ -1,47 +1,41 @@
-# Dependencias
+# Dependencies: installed with bun install
 node_modules/
 
-# Build / salida
+# Build: generated output
 dist/
 build/
+coverage/
 
-# Variables de entorno — NUNCA commitear claves (Groq, Anthropic, Culqi, DB)
+# Environment: secrets, never commit keys (Groq, Anthropic, Culqi, DB)
 .env
 .env.*
 !.env.example
+*.pem
+*.key
 
-# Logs
+# Logs: runtime and package manager logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 bun-debug.log*
 
-# Cobertura de tests
-coverage/
-
-# Sistema operativo
+# System and editors: local machine files
 .DS_Store
 Thumbs.db
-
-# Editores
 .idea/
 *.swp
 
-# Certificados y llaves
-*.pem
-*.key
-
-# Artefactos temporales
+# Temporary: scratch artifacts
 *.trace
 *.zip
 *.tar.gz
 *.tgz
 
-# Otros gestores de paquetes (este proyecto usa Bun; bun.lock SÍ se commitea)
+# Package managers: this project uses Bun, bun.lock IS committed
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
-.atl
 
-# Worktrees de agentes (temporales, no son parte del historial)
+# Agent tools: temporary, not part of the history
+.atl
 .claude/worktrees/
