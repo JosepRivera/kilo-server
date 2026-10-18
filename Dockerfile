@@ -1,11 +1,12 @@
-# Base: official Bun image
-FROM oven/bun:1 AS base
+# Base: official Bun image, slim variant (no build tools, smaller)
+FROM oven/bun:1-slim AS base
 WORKDIR /app
 
-# Dependencies: production packages only
+# Dependencies: production packages only, Bun cache kept between builds
 FROM base AS deps
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile --production
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install --frozen-lockfile --production
 
 # Runtime: final image that runs the server
 FROM base AS runtime
