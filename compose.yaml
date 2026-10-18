@@ -38,6 +38,28 @@ services:
         - action: rebuild
           path: package.json
 
+  docs:
+    build: ./docs
+    env_file:
+      - path: ./docs/.env
+        required: false
+    ports:
+      - "127.0.0.1:${DOCS_HOST_PORT:-4321}:4321"
+    restart: unless-stopped
+    develop:
+      watch:
+        - action: sync
+          path: ./docs/src
+          target: /app/src
+        - action: sync
+          path: ./docs/public
+          target: /app/public
+        - action: sync+restart
+          path: ./docs/astro.config.mjs
+          target: /app/astro.config.mjs
+        - action: rebuild
+          path: ./docs/package.json
+
 networks:
   default:
     name: kilo-server-network
