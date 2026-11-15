@@ -1,6 +1,5 @@
 import { SQL } from "bun";
 
-// API tests run against a real Postgres: the one from `docker compose`.
 const {
 	POSTGRES_USER,
 	POSTGRES_PASSWORD,

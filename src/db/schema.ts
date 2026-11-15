@@ -15,7 +15,6 @@ import {
 	uuid,
 } from "drizzle-orm/pg-core";
 
-// Columns are snake_case in Postgres and camelCase here.
 const { table } = snakeCase;
 
 const id = () => uuid().primaryKey().defaultRandom();
@@ -26,9 +25,7 @@ const day = () => date({ mode: "string" });
 export const restaurants = table("restaurants", {
 	id: id(),
 	name: text().notNull(),
-	/** SHA-256 of the device token; the token itself is never stored. */
 	tokenHash: text().notNull().unique(),
-	/** Weekdays (1 = Monday … 7 = Sunday) the restaurant never opens. */
 	closedWeekdays: smallint().array().notNull().default([]),
 	createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
@@ -40,12 +37,10 @@ export const categories = table(
 		restaurantId: uuid()
 			.notNull()
 			.references(() => restaurants.id, { onDelete: "cascade" }),
-		/** Master-catalog key, so entries still land here after a rename. */
 		key: text(),
 		name: text().notNull(),
 		purchaseIntervalDays: integer().notNull(),
 		monthlySpend: soles().notNull().default(0),
-		/** What new supplies of this category default to. */
 		critical: boolean().notNull(),
 	},
 	(t) => [
@@ -65,7 +60,6 @@ export const supplies = table(
 			.notNull()
 			.references(() => categories.id),
 		name: text().notNull(),
-		/** Fixed when the supply is created; every quantity uses it. */
 		unit: text().notNull(),
 		shelfLifeDays: integer().notNull(),
 		referencePrice: soles().notNull(),
@@ -75,7 +69,6 @@ export const supplies = table(
 	(t) => [unique().on(t.restaurantId, t.name)],
 );
 
-/** "medio balde" of one supply, in that supply's own unit. */
 export const supplyPhrases = table(
 	"supply_phrases",
 	{
@@ -88,7 +81,6 @@ export const supplyPhrases = table(
 	(t) => [primaryKey({ columns: [t.supplyId, t.phrase] })],
 );
 
-/** One nightly count per supply. `remaining` null is a planned closure. */
 export const stockRecords = table(
 	"stock_records",
 	{

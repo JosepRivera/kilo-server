@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
-import { normalizeTerm, resolve } from "../../src/domain/catalog";
+import { resolve } from "../../src/domain/catalog/resolve";
+import { normalizeTerm } from "../../src/domain/catalog/text";
 import { supply } from "./support";
 
 test("ignores accents, case and plurals", () => {

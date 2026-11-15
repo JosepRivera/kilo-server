@@ -1,12 +1,12 @@
 import type { Day } from "../../src/domain/day";
-import {
-	type Category,
-	Engine,
-	type Kitchen,
-	type Lot,
-	type StockRecord,
-	type Supply,
-} from "../../src/domain/engine";
+import { Engine } from "../../src/domain/engine";
+import type {
+	Category,
+	Kitchen,
+	Lot,
+	StockRecord,
+	Supply,
+} from "../../src/domain/kitchen";
 
 export const category = (over: Partial<Category> = {}): Category => ({
 	id: "protein",

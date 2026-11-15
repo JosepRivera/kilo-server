@@ -1,19 +1,20 @@
 import { describe, expect, test } from "bun:test";
+import {
+	COLD_START_DAYS,
+	coldStartEstimate,
+} from "../../src/domain/cold-start";
 import { addDays } from "../../src/domain/day";
-import { COLD_START_DAYS, consumedPerDay } from "../../src/domain/engine";
+import { consumedPerDay } from "../../src/domain/review";
 import { category, count, engine, lot, supply } from "./support";
 
-// 2026-11-09 is a Monday.
 const MON = "2026-11-09";
 const day = (offset: number) => addDays(MON, offset);
 
-/** `days` daily counts ending the day before `today`, using `perDay` each day. */
 const steadyHistory = (today: string, days: number, perDay: number) => {
 	const stock = [];
 	const lots = [];
 	for (let i = days; i >= 0; i--) {
 		const d = addDays(today, -1 - i);
-		// Restock to 100 every morning, count what is left every night.
 		if (i < days) lots.push(lot(d, perDay, null));
 		stock.push(count(d, 100));
 	}
@@ -37,7 +38,6 @@ describe("consumption", () => {
 	});
 
 	test("spreads a forgotten stretch evenly and marks it estimated", () => {
-		// The docs example: Monday 15 kg, Thursday 6 kg, nothing in between.
 		const e = engine(day(4), { stock: [count(MON, 15), count(day(3), 6)] });
 		expect(e.consumption("chicken")).toEqual(
 			[1, 2, 3].map((i) => ({
@@ -60,7 +60,6 @@ describe("consumption", () => {
 	});
 
 	test("a recurring closed weekday needs no record, and a real one wins", () => {
-		// Closed on Wednesdays (3). Day 2 is a Wednesday.
 		const closed = engine(day(4), {
 			closedWeekdays: [3],
 			stock: [count(MON, 15), count(day(1), 12), count(day(3), 8)],
@@ -105,7 +104,6 @@ describe("consumption", () => {
 		const e = engine(day(6), {
 			stock: [count(MON, 15), count(day(1), 12), count(day(4), 6)],
 		});
-		// 1 real day + 3 estimated days = 2.5, floored.
 		expect(e.realDays("chicken")).toBe(2);
 		expect(e.isLearning("chicken")).toBe(true);
 	});
@@ -120,8 +118,7 @@ describe("forecast", () => {
 				supply({ id: "fish", name: "Pescado" }),
 			],
 		});
-		// S/3000 ÷ 3 supplies ÷ 30 days ÷ S/10 per kg.
-		expect(e.coldStartEstimate("chicken")).toBeCloseTo(3.33, 2);
+		expect(coldStartEstimate(supply(), category(), 3)).toBeCloseTo(3.33, 2);
 		expect(e.forecast("chicken", MON)).toBeCloseTo(3.33, 2);
 	});
 
@@ -209,12 +206,10 @@ describe("lots", () => {
 			lots: [lot(day(1), 5, day(4))],
 			stock: [count(MON, 8), count(day(1), 13), count(day(2), 6)],
 		});
-		// 8 kg were there before any purchase; FIFO uses them before the lot.
 		expect(e.activeLots("chicken")).toHaveLength(1);
 		const [opening] = e.activeLots("chicken");
 		expect(opening?.lot.expiresOn).toBeNull();
 		expect(opening?.remaining).toBe(1);
-		// The purchased lot expired untouched; the opening stock never does.
 		expect(e.waste().map((w) => w.soles)).toEqual([50]);
 	});
 });
@@ -226,7 +221,6 @@ describe("review flags", () => {
 	});
 
 	test("flags a close that implies more than 3× the usual consumption", () => {
-		// The docs example: usual 4 kg, threshold 12 kg, a 13 kg day is flagged.
 		const today = day(20);
 		const check = engine(today, fortnight(today, 4)).closeCheck("chicken");
 		expect(check?.usual).toBe(4);
@@ -238,7 +232,6 @@ describe("review flags", () => {
 
 	test("does not flag excess worth less than S/10", () => {
 		const today = day(20);
-		// Usual 1 kg at S/2: 3× is only S/4 over, so the floor of S/10 rules.
 		const check = engine(today, fortnight(today, 1, 2)).closeCheck("chicken");
 		expect(check?.reviewBelow).toBe(100 - (1 + 10 / 2));
 	});

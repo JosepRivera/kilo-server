@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
-import { addDays, weekday } from "../../src/domain/day";
+import { addDays, isoWeekday } from "../../src/domain/day";
 import { fit, type Observation } from "../../src/domain/holt-winters";
 
-const START = "2026-09-07"; // a Monday
+const START = "2026-09-07";
 
 const series = (days: number, amount: (day: string) => number): Observation[] =>
 	Array.from({ length: days }, (_, i) => {
@@ -13,7 +13,7 @@ const series = (days: number, amount: (day: string) => number): Observation[] =>
 test("with no history the forecast is the cold-start estimate", () => {
 	const model = fit([], 3.3);
 	expect(model.forecast(START)).toBe(3.3);
-	expect(model.error).toBeNull();
+	expect(model.typicalError).toBeNull();
 });
 
 test("28 real days leave almost nothing of a wrong initial estimate", () => {
@@ -26,7 +26,7 @@ test("28 real days leave almost nothing of a wrong initial estimate", () => {
 
 test("learns that Fridays sell more than Tuesdays", () => {
 	const model = fit(
-		series(56, (day) => (weekday(day) === 5 ? 9 : 3)),
+		series(56, (day) => (isoWeekday(day) === 5 ? 9 : 3)),
 		4,
 	);
 	const friday = model.forecast(addDays(START, 56 + 4));
@@ -39,13 +39,13 @@ test("reports a typical miss only once there is a week of history", () => {
 		fit(
 			series(6, () => 4),
 			4,
-		).error,
+		).typicalError,
 	).toBeNull();
 	expect(
 		fit(
 			series(7, () => 4),
 			4,
-		).error,
+		).typicalError,
 	).toBeCloseTo(0, 5);
 });
 
