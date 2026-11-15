@@ -12,14 +12,14 @@
 		"db:check": "drizzle-kit check"
 	},
 	"dependencies": {
-		"@elysiajs/openapi": "^1.4.16",
-		"drizzle-orm": "1.0.0-rc.5-5935859",
-		"elysia": "1.4.30"
+		"@elysiajs/openapi": "^1.4.17",
+		"drizzle-orm": "1.0.0-rc.5",
+		"elysia": "1.4.32"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.5.15",
-		"@types/bun": "^1.4.3",
-		"drizzle-kit": "1.0.0-rc.5-5935859",
+		"@biomejs/biome": "^2.6.8",
+		"@types/bun": "^1.4.4",
+		"drizzle-kit": "1.0.0-rc.5",
 		"typescript": "^7.0.2"
 	},
 	"module": "src/index.ts",
