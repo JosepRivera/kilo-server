@@ -1,0 +1,3 @@
+[test]
+# Creates a throwaway database and points DATABASE_URL at it before any import.
+preload = ["./test/setup.ts"]

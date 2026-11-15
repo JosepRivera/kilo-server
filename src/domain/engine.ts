@@ -1,4 +1,4 @@
-import { addDays, type Day, daysBetween, monthOf, weekday } from "./day";
+import { addDays, type Day, daysBetween, weekday } from "./day";
 import { fit, type Model } from "./holt-winters";
 
 export const COLD_START_DAYS = 28;
@@ -81,6 +81,8 @@ export type Recommendation = {
 	demand: number;
 	buffer: number;
 	horizonDays: number;
+	/** How far off the forecast usually is on a single day. */
+	typicalError: number;
 };
 
 export type ExpiryAlert = { supplyId: string; lot: LotState; daysLeft: number };
@@ -329,6 +331,7 @@ export class Engine {
 			demand,
 			buffer,
 			horizonDays,
+			typicalError: error,
 		};
 	}
 
@@ -442,16 +445,9 @@ export class Engine {
 		return alerts.sort((a, b) => a.daysLeft - b.daysLeft);
 	}
 
-	/** Soles lost to expired stock, by "YYYY-MM". */
-	monthlyWaste(): Map<string, number> {
-		const out = new Map<string, number>();
-		for (const { id } of this.kitchen.supplies) {
-			for (const event of this.simulateLots(id).waste) {
-				const month = monthOf(event.day);
-				out.set(month, (out.get(month) ?? 0) + event.soles);
-			}
-		}
-		return out;
+	/** Every time part of a lot expired unused, valued at its purchase cost. */
+	waste(): WasteEvent[] {
+		return this.kitchen.supplies.flatMap((s) => this.simulateLots(s.id).waste);
 	}
 
 	/**

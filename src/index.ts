@@ -1,7 +1,11 @@
-import { Elysia } from "elysia";
+import { createApp } from "./app";
+import { db } from "./db/client";
 
-new Elysia().get("/", () => "Hello Elysia").listen(3000);
+const inviteCode = Bun.env.INVITE_CODE || undefined;
+if (!inviteCode) {
+	console.warn("INVITE_CODE is not set: anyone can register a restaurant");
+}
 
-console.log(
-	`🦊 Elysia is running at http://localhost:${Bun.env.API_HOST_PORT}`,
-);
+createApp({ db, now: () => new Date(), inviteCode }).listen(3000);
+
+console.log(`Kilo API on http://localhost:${Bun.env.API_HOST_PORT ?? 3000}`);
