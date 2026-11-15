@@ -1,20 +1,14 @@
 import { SQL } from "bun";
+import { localDatabaseUrl } from "../scripts/local-database";
 
-const {
-	POSTGRES_USER,
-	POSTGRES_PASSWORD,
-	POSTGRES_DB,
-	DB_HOST_PORT = "5433",
-} = Bun.env;
-const server = `postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${DB_HOST_PORT}`;
-const TEST_DB = "kilo_test";
+const TEST_DATABASE = "kilo_test";
 
-const admin = new SQL(`${server}/${POSTGRES_DB}`);
-await admin.unsafe(`DROP DATABASE IF EXISTS ${TEST_DB} WITH (FORCE)`);
-await admin.unsafe(`CREATE DATABASE ${TEST_DB}`);
+const admin = new SQL(localDatabaseUrl());
+await admin.unsafe(`DROP DATABASE IF EXISTS ${TEST_DATABASE} WITH (FORCE)`);
+await admin.unsafe(`CREATE DATABASE ${TEST_DATABASE}`);
 await admin.close();
 
-Bun.env.DATABASE_URL = `${server}/${TEST_DB}`;
+Bun.env.DATABASE_URL = localDatabaseUrl(TEST_DATABASE);
 
 const { migrate } = await import("drizzle-orm/bun-sql/migrator");
 const { db } = await import("../src/db/client");
