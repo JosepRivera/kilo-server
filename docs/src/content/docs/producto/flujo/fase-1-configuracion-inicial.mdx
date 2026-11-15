@@ -5,6 +5,9 @@ sidebar:
   order: 1
 ---
 
+import { Badge } from '@astrojs/starlight/components';
+
+Al abrir la app por primera vez solo se pide **el nombre del restaurante**: no hay usuario ni contraseña. El teléfono queda vinculado a ese restaurante y a partir de ahí todo lo que se registra es suyo (ver [¿Hay usuario y contraseña?](/producto/preguntas-frecuentes/#hay-usuario-y-contraseña)).
 
 El catálogo de insumos **no se arma en un paso de configuración aparte**: sale del primer registro de stock, hecho de inmediato — no se espera a la noche —, con el mismo mecanismo de voz de la [Fase 2](/producto/flujo/fase-2-registro-diario/). Cada insumo mencionado queda agregado al catálogo, resuelto contra el catálogo maestro, y ese stock sirve de línea base del **día 0** para poder calcular consumo desde el primer cierre nocturno real.
 
@@ -31,9 +34,11 @@ Las cantidades informales que usa el encargado de compras al hablar (ej. "medio 
 
 Además del catálogo, el encargado de compras declara, siempre **por categoría y no como un solo número global**, su **intervalo de compra** (cada cuántos días compra cada tipo de insumo — ej. proteínas y verduras cada 2-3 días, abarrotes cada 1-2 semanas; alimenta al recomendador de la [Fase 4](/producto/flujo/fase-4-recomendador/)) y su **gasto mensual en insumos** (alimenta la estimación de arranque en frío, ver [Fase 3, Capa 2](/producto/flujo/fase-3-prediccion/)).
 
+También declara, una sola vez, sus **días de cierre fijo** (ej. "cerrado los domingos"). Esos días cuentan solos como días sin consumo, sin tener que marcar nada cada semana (ver [Manejo de huecos](/producto/flujo/fase-2-registro-diario/#manejo-de-huecos-gaps)).
+
 Cada insumo también se clasifica como:
 
 - **Crítico**: se registra a diario. Típicamente proteínas y otros insumos caros o perecibles.
-- **Secundario**: se registra semanalmente, o se deja en un valor de referencia fijo. Típicamente insumos baratos y de larga duración (ej. sal).
+- **Secundario**: se registra semanalmente, o se deja en un valor de referencia fijo. Típicamente insumos baratos y de larga duración (ej. sal). El cierre de la noche solo pregunta por un secundario cuando ya pasaron **7 días** desde su último conteo <Badge text="Por validar en piloto" variant="caution" />.
 
 Esto **no lo declara el encargado de compras insumo por insumo**: cada insumo trae un valor por defecto heredado del catálogo maestro (proteínas y perecibles → crítico, abarrotes y condimentos → secundario). Después de los primeros días de uso real, con el catálogo ya armado, se le muestra **una sola pantalla de revisión en bloque** para corregir lo que no calce con su negocio — no una confirmación por insumo.

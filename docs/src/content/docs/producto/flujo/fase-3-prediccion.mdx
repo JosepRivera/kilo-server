@@ -19,6 +19,20 @@ El proceso corre **una vez al día, a una hora fija de poco tráfico** (aprox. 5
 
 Un cierre real (consumo cero, marcado como tal en [Fase 2](/producto/flujo/fase-2-registro-diario/)) entra a Holt-Winters **igual que cualquier otro dato real** — nunca se trata como dato faltante.
 
+<Aside type="note" title="En el MVP, el recálculo ocurre al consultar">
+Mientras el piloto sea de pocos restaurantes, Kilo no guarda la predicción de cada noche: la recalcula desde el historial cada vez que se abre la app, usando **solo los días anteriores al corte de las 6am**. El resultado es el mismo que el de un proceso nocturno y evita mantener un trabajo programado. Cuando el volumen lo pida, pasa a calcularse una vez por noche sin cambiar nada de lo que ve el encargado de compras.
+</Aside>
+
+## Cómo arranca el modelo <Badge text="Por validar en piloto" variant="caution" />
+
+Las tres piezas no se aprenden a la vez. Si se aprendieran juntas desde el día 1, una estimación inicial muy lejos de la realidad se "escondería" en el patrón semanal y tardaría meses en corregirse. Por eso el modelo arranca por etapas:
+
+<Steps>
+1. **Semana 1 — solo el nivel.** Cada día real acerca el nivel al consumo verdadero; con una estimación inicial 10 veces más alta que la realidad, al final de la semana ya queda poco de ella.
+2. **Semana 2 — se suma el patrón semanal.** Con el nivel ya asentado, empieza a distinguir un viernes de un martes.
+3. **Desde la semana 3 — se suma la tendencia.** Recién entonces mira si el consumo viene subiendo o bajando, y la amortigua para que un par de días raros no proyecten una caída o una subida sin fin.
+</Steps>
+
 ## Arranque en frío (cold start): sistema de 3 capas
 
 Durante los primeros ~28 días, un insumo todavía no tiene suficiente historial propio. Kilo resuelve esto con tres capas que trabajan juntas. Algo importante: el historial **solo guarda días reales**. La estimación inicial nunca se escribe ahí como si fuera consumo de verdad.
