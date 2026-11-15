@@ -1,0 +1,995 @@
+{
+  "type": "base",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "eaed34bf-6e9b-47d6-8f36-f08f590ac8c6",
+  "prevIds": [
+    "00000000-0000-0000-0000-000000000000"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "categories"
+      ],
+      "writes": [
+        "s|tbl|public.categories",
+        "n|tbl|public.categories",
+        "e|tbl|public.categories",
+        "n|rel|public.categories",
+        "n|type|public.categories",
+        "n|rel|public.categories_pkey",
+        "n|rel|public.categories_restaurant_id_name_unique"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "lots"
+      ],
+      "writes": [
+        "s|tbl|public.lots",
+        "n|tbl|public.lots",
+        "e|tbl|public.lots",
+        "n|rel|public.lots",
+        "n|type|public.lots",
+        "n|rel|public.lots_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "restaurants"
+      ],
+      "writes": [
+        "s|tbl|public.restaurants",
+        "n|tbl|public.restaurants",
+        "e|tbl|public.restaurants",
+        "n|rel|public.restaurants",
+        "n|type|public.restaurants",
+        "n|rel|public.restaurants_pkey",
+        "n|rel|public.restaurants_token_hash_key"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "stock_records"
+      ],
+      "writes": [
+        "s|tbl|public.stock_records",
+        "n|tbl|public.stock_records",
+        "e|tbl|public.stock_records",
+        "n|rel|public.stock_records",
+        "n|type|public.stock_records",
+        "n|rel|public.stock_records_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "supplies"
+      ],
+      "writes": [
+        "s|tbl|public.supplies",
+        "n|tbl|public.supplies",
+        "e|tbl|public.supplies",
+        "n|rel|public.supplies",
+        "n|type|public.supplies",
+        "n|rel|public.supplies_pkey",
+        "n|rel|public.supplies_restaurant_id_name_unique"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "supply_phrases"
+      ],
+      "writes": [
+        "s|tbl|public.supply_phrases",
+        "n|tbl|public.supply_phrases",
+        "e|tbl|public.supply_phrases",
+        "n|rel|public.supply_phrases",
+        "n|type|public.supply_phrases",
+        "n|rel|public.supply_phrases_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "lots",
+        "lots_supply_id_purchased_on_index"
+      ],
+      "writes": [
+        "s|idx|public.lots_supply_id_purchased_on_index",
+        "n|idx|public.lots_supply_id_purchased_on_index",
+        "e|idx|public.lots_supply_id_purchased_on_index",
+        "n|rel|public.lots_supply_id_purchased_on_index"
+      ],
+      "reads": [
+        "n|tbl|public.lots",
+        "n|sch|public",
+        "n|col|public.lots.supply_id",
+        "n|col|public.lots.purchased_on"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "categories"
+      ],
+      "writes": [
+        "s|fk|public.categories.categories_restaurant_id_restaurants_id_fkey",
+        "n|fk|public.categories.categories_restaurant_id_restaurants_id_fkey",
+        "e|fk|public.categories.categories_restaurant_id_restaurants_id_fkey",
+        "n|con|public.categories.categories_restaurant_id_restaurants_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.categories",
+        "n|sch|public",
+        "n|tbl|public.restaurants",
+        "n|sch|public",
+        "n|col|public.categories.restaurant_id",
+        "n|col|public.restaurants.id",
+        "e|uniqueness|public.restaurants.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "lots"
+      ],
+      "writes": [
+        "s|fk|public.lots.lots_supply_id_supplies_id_fkey",
+        "n|fk|public.lots.lots_supply_id_supplies_id_fkey",
+        "e|fk|public.lots.lots_supply_id_supplies_id_fkey",
+        "n|con|public.lots.lots_supply_id_supplies_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.lots",
+        "n|sch|public",
+        "n|tbl|public.supplies",
+        "n|sch|public",
+        "n|col|public.lots.supply_id",
+        "n|col|public.supplies.id",
+        "e|uniqueness|public.supplies.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "stock_records"
+      ],
+      "writes": [
+        "s|fk|public.stock_records.stock_records_supply_id_supplies_id_fkey",
+        "n|fk|public.stock_records.stock_records_supply_id_supplies_id_fkey",
+        "e|fk|public.stock_records.stock_records_supply_id_supplies_id_fkey",
+        "n|con|public.stock_records.stock_records_supply_id_supplies_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.stock_records",
+        "n|sch|public",
+        "n|tbl|public.supplies",
+        "n|sch|public",
+        "n|col|public.stock_records.supply_id",
+        "n|col|public.supplies.id",
+        "e|uniqueness|public.supplies.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "supplies"
+      ],
+      "writes": [
+        "s|fk|public.supplies.supplies_restaurant_id_restaurants_id_fkey",
+        "n|fk|public.supplies.supplies_restaurant_id_restaurants_id_fkey",
+        "e|fk|public.supplies.supplies_restaurant_id_restaurants_id_fkey",
+        "n|con|public.supplies.supplies_restaurant_id_restaurants_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.supplies",
+        "n|sch|public",
+        "n|tbl|public.restaurants",
+        "n|sch|public",
+        "n|col|public.supplies.restaurant_id",
+        "n|col|public.restaurants.id",
+        "e|uniqueness|public.restaurants.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "supplies"
+      ],
+      "writes": [
+        "s|fk|public.supplies.supplies_category_id_categories_id_fkey",
+        "n|fk|public.supplies.supplies_category_id_categories_id_fkey",
+        "e|fk|public.supplies.supplies_category_id_categories_id_fkey",
+        "n|con|public.supplies.supplies_category_id_categories_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.supplies",
+        "n|sch|public",
+        "n|tbl|public.categories",
+        "n|sch|public",
+        "n|col|public.supplies.category_id",
+        "n|col|public.categories.id",
+        "e|uniqueness|public.categories.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "supply_phrases"
+      ],
+      "writes": [
+        "s|fk|public.supply_phrases.supply_phrases_supply_id_supplies_id_fkey",
+        "n|fk|public.supply_phrases.supply_phrases_supply_id_supplies_id_fkey",
+        "e|fk|public.supply_phrases.supply_phrases_supply_id_supplies_id_fkey",
+        "n|con|public.supply_phrases.supply_phrases_supply_id_supplies_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.supply_phrases",
+        "n|sch|public",
+        "n|tbl|public.supplies",
+        "n|sch|public",
+        "n|col|public.supply_phrases.supply_id",
+        "n|col|public.supplies.id",
+        "e|uniqueness|public.supplies.id"
+      ]
+    }
+  ],
+  "ddl": [
+    {
+      "schema": "public",
+      "name": "categories",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "lots",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "restaurants",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "stock_records",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "supplies",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "supply_phrases",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "table": "categories",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "categories",
+      "name": "restaurant_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "categories",
+      "name": "key",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "categories",
+      "name": "name",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "categories",
+      "name": "purchase_interval_days",
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "categories",
+      "name": "monthly_spend",
+      "type": "numeric(12,2)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'0'",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "categories",
+      "name": "critical",
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lots",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lots",
+      "name": "supply_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lots",
+      "name": "purchased_on",
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lots",
+      "name": "quantity",
+      "type": "numeric(12,3)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lots",
+      "name": "cost",
+      "type": "numeric(12,2)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lots",
+      "name": "expires_on",
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "restaurants",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "restaurants",
+      "name": "name",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "restaurants",
+      "name": "token_hash",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "restaurants",
+      "name": "closed_weekdays",
+      "type": "smallint",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 1,
+      "default": "'{}'",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "restaurants",
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "stock_records",
+      "name": "supply_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "stock_records",
+      "name": "day",
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "stock_records",
+      "name": "remaining",
+      "type": "numeric(12,3)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "supplies",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "supplies",
+      "name": "restaurant_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "supplies",
+      "name": "category_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "supplies",
+      "name": "name",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "supplies",
+      "name": "unit",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "supplies",
+      "name": "shelf_life_days",
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "supplies",
+      "name": "reference_price",
+      "type": "numeric(12,2)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "supplies",
+      "name": "icon",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "supplies",
+      "name": "critical",
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "supply_phrases",
+      "name": "supply_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "supply_phrases",
+      "name": "phrase",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "supply_phrases",
+      "name": "amount",
+      "type": "numeric(12,3)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lots",
+      "name": "lots_supply_id_purchased_on_index",
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "supply_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "purchased_on",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "entityType": "indexes"
+    },
+    {
+      "schema": "public",
+      "table": "categories",
+      "name": "categories_restaurant_id_restaurants_id_fkey",
+      "nameExplicit": false,
+      "columns": [
+        "restaurant_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "restaurants",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "lots",
+      "name": "lots_supply_id_supplies_id_fkey",
+      "nameExplicit": false,
+      "columns": [
+        "supply_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "supplies",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "stock_records",
+      "name": "stock_records_supply_id_supplies_id_fkey",
+      "nameExplicit": false,
+      "columns": [
+        "supply_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "supplies",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "supplies",
+      "name": "supplies_restaurant_id_restaurants_id_fkey",
+      "nameExplicit": false,
+      "columns": [
+        "restaurant_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "restaurants",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "supplies",
+      "name": "supplies_category_id_categories_id_fkey",
+      "nameExplicit": false,
+      "columns": [
+        "category_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "categories",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "supply_phrases",
+      "name": "supply_phrases_supply_id_supplies_id_fkey",
+      "nameExplicit": false,
+      "columns": [
+        "supply_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "supplies",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "stock_records",
+      "name": "stock_records_pkey",
+      "columns": [
+        "supply_id",
+        "day"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "supply_phrases",
+      "name": "supply_phrases_pkey",
+      "columns": [
+        "supply_id",
+        "phrase"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "categories",
+      "name": "categories_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "lots",
+      "name": "lots_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "restaurants",
+      "name": "restaurants_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "supplies",
+      "name": "supplies_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "categories",
+      "name": "categories_restaurant_id_name_unique",
+      "nameExplicit": false,
+      "columns": [
+        "restaurant_id",
+        "name"
+      ],
+      "nullsNotDistinct": false,
+      "entityType": "uniques"
+    },
+    {
+      "schema": "public",
+      "table": "supplies",
+      "name": "supplies_restaurant_id_name_unique",
+      "nameExplicit": false,
+      "columns": [
+        "restaurant_id",
+        "name"
+      ],
+      "nullsNotDistinct": false,
+      "entityType": "uniques"
+    },
+    {
+      "schema": "public",
+      "table": "restaurants",
+      "name": "restaurants_token_hash_key",
+      "nameExplicit": false,
+      "columns": [
+        "token_hash"
+      ],
+      "nullsNotDistinct": false,
+      "entityType": "uniques"
+    },
+    {
+      "schema": "public",
+      "table": "categories",
+      "name": "categories_interval_positive",
+      "value": "\"purchase_interval_days\" > 0",
+      "entityType": "checks"
+    },
+    {
+      "schema": "public",
+      "table": "lots",
+      "name": "lots_quantity_positive",
+      "value": "\"quantity\" > 0",
+      "entityType": "checks"
+    }
+  ]
+}

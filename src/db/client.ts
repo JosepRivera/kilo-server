@@ -7,3 +7,4 @@ if (!url) throw new Error("DATABASE_URL is not set");
 
 export const relations = defineRelations(schema, () => ({}));
 export const db = drizzle(url, { relations });
+export type Db = typeof db;
