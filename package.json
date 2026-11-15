@@ -11,7 +11,8 @@
 		"db:studio": "drizzle-kit studio",
 		"db:check": "drizzle-kit check",
 		"check": "biome check . && tsc --noEmit",
-		"test": "docker compose up --detach --wait database && bun test"
+		"test": "docker compose up --detach --wait database && bun test",
+		"db:seed-demo": "bun run scripts/seed-demo.ts"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^1.8.0",

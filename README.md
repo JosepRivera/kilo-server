@@ -11,6 +11,7 @@ bun install
 bun run dev               # Postgres, API (:3001) y docs (:4321) con recarga
 bun run test              # levanta Postgres y corre las pruebas
 bun run check             # Biome + TypeScript
+bun run db:seed-demo "Doña Rosa"   # 6 semanas de historia para un restaurante ya registrado
 ```
 
 Con la API arriba, el contrato completo está en `http://localhost:3001/openapi`.
