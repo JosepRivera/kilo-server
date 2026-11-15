@@ -199,7 +199,9 @@ describe("lots", () => {
 			stock: [count(day(1), 4)],
 		});
 		expect(e.currentStock("chicken")).toBe(0);
-		expect(e.monthlyWaste()).toEqual(new Map([["2026-11", 40]]));
+		expect(e.waste()).toEqual([
+			{ day: day(4), supplyId: "chicken", quantity: 4, soles: 40 },
+		]);
 	});
 
 	test("stock no purchase explains becomes an opening lot that never expires", () => {
@@ -213,7 +215,7 @@ describe("lots", () => {
 		expect(opening?.lot.expiresOn).toBeNull();
 		expect(opening?.remaining).toBe(1);
 		// The purchased lot expired untouched; the opening stock never does.
-		expect(e.monthlyWaste()).toEqual(new Map([["2026-11", 50]]));
+		expect(e.waste().map((w) => w.soles)).toEqual([50]);
 	});
 });
 

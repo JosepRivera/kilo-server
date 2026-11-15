@@ -21,6 +21,7 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
       API_HOST_PORT: ${API_HOST_PORT:-3001}
+      INVITE_CODE: ${INVITE_CODE:-}
     ports:
       - "127.0.0.1:${API_HOST_PORT:-3001}:3000"
     depends_on:

@@ -124,16 +124,28 @@ export const MASTER_CATALOG: CatalogEntry[] = [
 	entry("Gaseosa", "unidades", "beverage", 180, 2.5),
 ];
 
-/** Lowercase, no accents, no plural endings: "Limones" and "limón" match. */
-export function normalizeTerm(text: string): string {
+/** Lowercase, no accents, single spaces: how a spoken phrase is stored. */
+export function foldText(text: string): string {
 	return text
 		.normalize("NFD")
 		.replace(/\p{Diacritic}/gu, "")
 		.toLowerCase()
 		.split(/[^a-z0-9]+/)
 		.filter(Boolean)
-		.map((word) => (word.length > 3 ? word.replace(/e?s$/, "") : word))
 		.join(" ");
+}
+
+/** Folded and without plural endings: "Limones" and "limón" match. */
+export function normalizeTerm(text: string): string {
+	return (
+		foldText(text)
+			.split(" ")
+			// Drop "s" and then "e": "tomates"/"tomate" and "limones"/"limón" meet.
+			.map((word) =>
+				word.length > 3 ? word.replace(/s$/, "").replace(/e$/, "") : word,
+			)
+			.join(" ")
+	);
 }
 
 /** A supply the restaurant already has, or a master-catalog entry it could add. */
@@ -153,7 +165,10 @@ export type Resolution =
  * Resolves a spoken name. Never guesses: several matches go back to the user
  * as a choice, and no match asks for confirmation before creating a supply.
  */
-export function resolve(spoken: string, supplies: Supply[]): Resolution {
+export function resolve(
+	spoken: string,
+	supplies: Pick<Supply, "id" | "name" | "unit">[],
+): Resolution {
 	const term = normalizeTerm(spoken);
 	if (!term) return { kind: "unknown" };
 
