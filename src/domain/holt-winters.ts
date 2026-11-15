@@ -1,72 +1,96 @@
-import { type Day, daysBetween, weekday } from "./day";
+import { type Day, daysBetween, isoWeekday } from "./day";
+import { rootMeanSquare } from "./statistics";
 
-// Starting smoothing parameters, to be tuned with pilot data.
-const ALPHA = 0.3;
-const BETA = 0.05;
-const GAMMA = 0.3;
-// Damping keeps a noisy trend from running away over a two-week horizon.
-const PHI = 0.9;
-const SEASON_WARMUP = 7;
-const TREND_WARMUP = 14;
+const LEVEL_SMOOTHING = 0.3;
+const TREND_SMOOTHING = 0.05;
+const SEASON_SMOOTHING = 0.3;
+const TREND_DAMPING = 0.9;
+const DAYS_IN_WEEK = 7;
+const OBSERVATIONS_BEFORE_SEASON = 7;
+const OBSERVATIONS_BEFORE_TREND = 14;
 const ERROR_WINDOW = 28;
 const MIN_ERRORS = 7;
 
 export type Observation = { day: Day; amount: number; closed: boolean };
 
 export type Model = {
-	/** Expected consumption on `day`, never negative. */
 	forecast(day: Day): number;
-	/** Typical one-day miss (RMSE), or null while there is too little history. */
-	error: number | null;
+	typicalError: number | null;
 };
 
-/**
- * Additive Holt-Winters with a weekly season. The cold-start estimate is only
- * the initial level: every real day pulls the model away from it.
- */
-export function fit(observations: Observation[], initialLevel: number): Model {
-	let level = initialLevel;
-	let trend = 0;
-	const season = new Array<number>(8).fill(0);
-	const errors: number[] = [];
-	let lastDay: Day | undefined;
-	let seen = 0;
+type State = {
+	level: number;
+	trend: number;
+	season: number[];
+	observed: number;
+	lastDay: Day | undefined;
+};
 
-	for (const { day, amount, closed } of observations) {
-		const wd = weekday(day);
-		const seasonal = season[wd] ?? 0;
-		if (!closed) errors.push(amount - (level + trend + seasonal));
-		const previous = level;
-		level = ALPHA * (amount - seasonal) + (1 - ALPHA) * (level + trend);
-		// Warm up in stages: the first week only settles the level, the second
-		// adds the weekday pattern, and the trend waits for both. Learning all
-		// three at once lets a wrong cold-start level leak into the others.
-		seen++;
-		if (seen > SEASON_WARMUP) {
-			season[wd] = GAMMA * (amount - level) + (1 - GAMMA) * seasonal;
-			// Keep the season centred on zero so it cannot absorb level error.
-			const drift = season.reduce((sum, s) => sum + s, 0) / 7;
-			for (let i = 1; i <= 7; i++) season[i] = (season[i] ?? 0) - drift;
-			level += drift;
+const seasonOf = (state: State, day: Day) =>
+	state.season[isoWeekday(day) - 1] ?? 0;
+
+function recentreSeason(state: State) {
+	const drift = state.season.reduce((total, s) => total + s, 0) / DAYS_IN_WEEK;
+	state.season = state.season.map((s) => s - drift);
+	state.level += drift;
+}
+
+function learn(state: State, { day, amount }: Observation) {
+	const seasonal = seasonOf(state, day);
+	const previousLevel = state.level;
+	state.level =
+		LEVEL_SMOOTHING * (amount - seasonal) +
+		(1 - LEVEL_SMOOTHING) * (state.level + state.trend);
+	state.observed++;
+	if (state.observed > OBSERVATIONS_BEFORE_SEASON) {
+		state.season[isoWeekday(day) - 1] =
+			SEASON_SMOOTHING * (amount - state.level) +
+			(1 - SEASON_SMOOTHING) * seasonal;
+		recentreSeason(state);
+	}
+	if (state.observed > OBSERVATIONS_BEFORE_TREND) {
+		state.trend =
+			TREND_SMOOTHING * (state.level - previousLevel) +
+			(1 - TREND_SMOOTHING) * TREND_DAMPING * state.trend;
+	}
+	state.lastDay = day;
+}
+
+const dampedSteps = (steps: number) =>
+	(TREND_DAMPING * (1 - TREND_DAMPING ** steps)) / (1 - TREND_DAMPING);
+
+export function fit(observations: Observation[], initialLevel: number): Model {
+	const state: State = {
+		level: initialLevel,
+		trend: 0,
+		season: new Array<number>(DAYS_IN_WEEK).fill(0),
+		observed: 0,
+		lastDay: undefined,
+	};
+	const errors: number[] = [];
+
+	for (const observation of observations) {
+		if (!observation.closed) {
+			errors.push(
+				observation.amount -
+					(state.level + state.trend + seasonOf(state, observation.day)),
+			);
 		}
-		if (seen > TREND_WARMUP) {
-			trend = BETA * (level - previous) + (1 - BETA) * PHI * trend;
-		}
-		lastDay = day;
+		learn(state, observation);
 	}
 
-	const recent = errors.slice(-ERROR_WINDOW);
-	const error =
-		recent.length < MIN_ERRORS
-			? null
-			: Math.sqrt(recent.reduce((sum, e) => sum + e * e, 0) / recent.length);
-
+	const recentErrors = errors.slice(-ERROR_WINDOW);
 	return {
-		error,
+		typicalError:
+			recentErrors.length < MIN_ERRORS ? null : rootMeanSquare(recentErrors),
 		forecast(day) {
-			const steps = lastDay ? Math.max(1, daysBetween(lastDay, day)) : 1;
-			const damped = (PHI * (1 - PHI ** steps)) / (1 - PHI);
-			return Math.max(0, level + damped * trend + (season[weekday(day)] ?? 0));
+			const steps = state.lastDay
+				? Math.max(1, daysBetween(state.lastDay, day))
+				: 1;
+			return Math.max(
+				0,
+				state.level + dampedSteps(steps) * state.trend + seasonOf(state, day),
+			);
 		},
 	};
 }

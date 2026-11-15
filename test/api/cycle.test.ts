@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { addDays } from "../../src/domain/day";
 import { clock, register } from "./support";
 
-// 2026-11-09 is a Monday.
 const MON = "2026-11-09";
 const day = (offset: number) => addDays(MON, offset);
 
@@ -177,7 +176,6 @@ describe("the daily cycle", () => {
 
 	test("a close dictated after midnight still counts for the day ending", async () => {
 		const { close, detail } = await setup();
-		// 01:00 on Tuesday in Lima.
 		clock.now = new Date(`${day(1)}T06:00:00Z`);
 		await close(15);
 		clock.set(day(1));
@@ -211,7 +209,6 @@ describe("the daily cycle", () => {
 		const [line] = before.toBuy;
 		expect(line.supply.id).toBe(id);
 		expect(line.bought).toBe(false);
-		// S/2850 a month on one supply at S/9.50 is 10 kg a day, for 3 days.
 		expect(line.recommendation.demand).toBeCloseTo(30);
 		expect(line.recommendation.horizonDays).toBe(3);
 		expect(line.recommendation.toBuy).toBeGreaterThan(28);
@@ -248,7 +245,6 @@ describe("the daily cycle", () => {
 		}
 		clock.set(day(15));
 		const supply = await detail();
-		// Usual 4 kg a day: review a close that implies more than 12 kg.
 		expect(supply.closeCheck).toEqual({
 			base: 40,
 			gapDays: 1,

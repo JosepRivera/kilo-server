@@ -1,7 +1,7 @@
-import { type AppConfig, createApp } from "../../src/app";
+import { createApp } from "../../src/app";
 import { db } from "../../src/db/client";
+import type { Dependencies } from "../../src/dependencies";
 
-/** A clock tests can move; noon in Lima on the given business day. */
 export const clock = {
 	now: new Date(),
 	set(day: string) {
@@ -9,12 +9,11 @@ export const clock = {
 	},
 };
 
-export const buildApp = (config: Partial<AppConfig> = {}) =>
+export const buildApp = (config: Partial<Dependencies> = {}) =>
 	createApp({ db, now: () => clock.now, ...config });
 
 type App = { handle(request: Request): Promise<Response> };
 
-/** A tiny HTTP client bound to one app and, optionally, one device token. */
 export function client(app: App, token?: string) {
 	const call = async (method: string, path: string, body?: unknown) => {
 		const headers = new Headers();
@@ -29,7 +28,6 @@ export function client(app: App, token?: string) {
 		);
 		const text = await response.text();
 		const json = response.headers.get("content-type")?.includes("json");
-		// biome-ignore lint/suspicious/noExplicitAny: tests read arbitrary JSON
 		const parsed: any = json ? JSON.parse(text) : text;
 		return { status: response.status, body: parsed };
 	};
@@ -41,7 +39,6 @@ export function client(app: App, token?: string) {
 	};
 }
 
-/** Registers a fresh restaurant and returns a client that acts as it. */
 export async function register(app: App = buildApp(), name = "Doña Rosa") {
 	const { body } = await client(app).post("/restaurants", { name });
 	return client(app, body.token as string);
