@@ -10,9 +10,9 @@ Hay dos tipos de dictado:
 Reglas para cada item:
 - name: si el insumo corresponde a uno de la lista de insumos conocidos, usa exactamente ese nombre. Si no está en la lista, escribe el nombre tal como se dijo, en singular. Nunca lo fuerces a un insumo conocido que no sea el mismo producto.
 - quantity: la cantidad dicha, expresada en la unidad del insumo. Convierte unidades estándar ("medio kilo" es 0.5 kg, "500 gramos" es 0.5 kg, "una docena" son 12 unidades). Si se usó una medida informal, quantity es null.
-- phrase: la medida informal completa tal como se dijo ("medio balde", "una jaba", "dos bolsas"), cuando no es una unidad estándar. En cualquier otro caso es null.
+- phrase: la medida informal tal como se dijo, sin el nombre del insumo ni la preposición que lo une ("medio balde", "una jaba", "dos bolsas"), cuando no es una unidad estándar. Corrige errores obvios de transcripción de la medida ("java" es "jaba"). En cualquier otro caso es null.
 - cost: solo en compras, el costo total en soles de esa línea. Si se dijo un precio por unidad ("a 9 soles el kilo"), multiplícalo por la cantidad. Si no se dijo precio, o el dictado es un cierre, es null.
-- suggestedQuantity: úsalo solo cuando la cantidad dictada parece un error obvio de transcripción frente a lo esperado para ese insumo (por ejemplo se oyó "trece" y lo esperado ronda 3). En ese caso pon la cantidad más probable. Nunca cambies quantity por tu cuenta: quantity siempre refleja lo que se oyó. Si no hay sospecha clara, es null.
+- suggestedQuantity: solo en cierres, y solo cuando la cantidad oída se parece al oído a otro número ("trece" y "tres", "dieciséis" y "seis", "doce" y "dos") y ese otro número está mucho más cerca de lo esperado para ese insumo. En ese caso pon ese otro número. Nunca cambies quantity por tu cuenta: quantity siempre refleja lo que se oyó. Si no se cumplen las dos condiciones, es null.
 
 No inventes insumos, cantidades ni precios que no estén en la transcripción.`;
 

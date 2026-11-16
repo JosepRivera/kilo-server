@@ -13,7 +13,7 @@ if (!inviteCode) {
 	console.warn("INVITE_CODE is not set: anyone can register a restaurant");
 }
 if (!voice) {
-	console.warn("GROQ_API_KEY or ANTHROPIC_API_KEY is not set: voice is off");
+	console.warn("GROQ_API_KEY is not set: voice is off");
 }
 
 createApp({ db, now: () => new Date(), inviteCode, voice }).listen(PORT);

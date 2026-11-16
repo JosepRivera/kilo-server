@@ -28,7 +28,7 @@ src/domain            Reglas puras, sin base de datos ni HTTP
   recommendation, review      Cantidad a comprar y umbrales de «revisar»
   engine                      Fachada que compone lo anterior por insumo
   catalog/                    Plantilla de categorías, catálogo maestro y resolución de nombres
-src/voice             Pasarelas externas: transcripción (Groq Whisper) y extracción (Claude Haiku)
+src/voice             Pasarelas externas: transcripción (Groq Whisper) y extracción (Claude Haiku, o gpt-oss en Groq)
 src/db                Esquema Drizzle y cliente Postgres
 src/modules/<área>    index (rutas) · service (datos y casos de uso) · model (esquemas) · presenter (vistas)
 test                  Pruebas de dominio y de API contra Postgres real
@@ -171,4 +171,6 @@ Las fechas son días de negocio de Lima (`YYYY-MM-DD`; el día cambia a las 6am)
 }
 ```
 
-`503` si el servidor no tiene `GROQ_API_KEY` / `ANTHROPIC_API_KEY`.
+La transcripción usa Groq Whisper. La extracción usa Claude Haiku si hay
+`ANTHROPIC_API_KEY` y, si no, `openai/gpt-oss-120b` en Groq. Responde `503` si
+no hay `GROQ_API_KEY` y `502` si un proveedor falla (se puede reintentar).

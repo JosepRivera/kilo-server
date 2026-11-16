@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { claudeExtractor } from "./claude-extractor";
 import type { Extractor } from "./extraction";
-import { claudeExtractor } from "./extractor";
+import { groqExtractor } from "./groq-extractor";
 import { groqTranscriber, type Transcriber } from "./transcriber";
 
 export type VoiceGateway = {
@@ -17,11 +18,11 @@ export function createVoiceGateway({
 	groqApiKey,
 	anthropicApiKey,
 }: VoiceKeys): VoiceGateway | undefined {
-	if (!groqApiKey || !anthropicApiKey) return undefined;
+	if (!groqApiKey) return undefined;
 	return {
 		transcribe: groqTranscriber(groqApiKey),
-		extract: claudeExtractor(
-			new Anthropic({ apiKey: anthropicApiKey }).messages,
-		),
+		extract: anthropicApiKey
+			? claudeExtractor(new Anthropic({ apiKey: anthropicApiKey }).messages)
+			: groqExtractor(groqApiKey),
 	};
 }
