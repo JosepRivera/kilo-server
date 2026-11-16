@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
 import Anthropic from "@anthropic-ai/sdk";
+import { claudeExtractor } from "../../src/voice/claude-extractor";
 import { VoiceGatewayError } from "../../src/voice/errors";
 import type { ExtractionRequest } from "../../src/voice/extraction";
-import { claudeExtractor } from "../../src/voice/extractor";
 import { buildExtractionPrompt } from "../../src/voice/prompt";
 
 const request: ExtractionRequest = {
